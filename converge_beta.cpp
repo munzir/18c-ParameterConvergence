@@ -445,8 +445,8 @@ int convergeToBeta() {
     ofstream betaFile;
     betaFile.open("betaVectors.txt");
     // Open output file to write xCOM errors
-    ofstream xCOMErrorFile;
-    xCOMErrorFile.open("xCOMError.txt");
+    ofstream xCOMValuesFile;
+    xCOMValuesFile.open("xCOMValues.txt");
 
     // Update beta params while looping through all the input phi vectors of
     // their respective poses
@@ -455,7 +455,7 @@ int convergeToBeta() {
 
     Eigen::MatrixXd phiVec(1, numBetaParams);
     Eigen::MatrixXd xCOM(1, 1);
-    Eigen::MatrixXd xCOMError(1, 1);
+    Eigen::MatrixXd xCOMValue(1, 1);
     Eigen::MatrixXd delta(1, numBetaParams);
 
     Eigen::MatrixXd totalMass(1, 1);
@@ -477,14 +477,14 @@ int convergeToBeta() {
         xCOM = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - totalMass));
 
         // Is this right way to calculate error or is it just xCOM from above?
-        //xCOMError = phiVec * currBeta.transpose();
+        //xCOMValue = phiVec * currBeta.transpose();
 
         // Use absolute value of error to see if solution is suitable or not
         if (abs(xCOM(0, 0)) <= suitableError) {
             hasConverged = 1;
         }
         // Should/can also write the error to a file for analysis
-        xCOMErrorFile << xCOM << "\n";
+        xCOMValuesFile << xCOM << "\n";
 
         delta = phiVec + (u * massIndicatorMatrix);
         // Update currBeta parameter vector
@@ -501,12 +501,12 @@ int convergeToBeta() {
     // is used twice with two different betas)
     xCOM = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - totalMass));
 
-    //xCOMError = phiVec * currBeta.transpose();
-    xCOMErrorFile << xCOM << "\n";
+    //xCOMValues = phiVec * currBeta.transpose();
+    xCOMValuesFile << xCOM << "\n";
 
     betaFile.close();
     cout << "|-> Done\n";
-    xCOMErrorFile.close();
+    xCOMValuesFile.close();
 
     return 0;
 }

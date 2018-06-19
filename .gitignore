@@ -8,5 +8,5 @@
 !README.md
 
 # Scripts
-!recoverBeta.cpp
-!graph_beta_error.py
+!converge_beta.cpp
+!graph_beta_values.py
