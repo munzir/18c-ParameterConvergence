@@ -30,6 +30,7 @@ A script that graphs the generated beta values compared to the ideal values
 Takes in the output files from `converge_beta` in the following order.
 
 1: xCoM file
+
 2: beta values file
 
 ### Dependencies
