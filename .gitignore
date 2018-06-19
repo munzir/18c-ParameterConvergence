@@ -1,0 +1,12 @@
+# Exclude all files/directories except the ones I want
+/*
+
+# .gitignore
+!.gitignore
+
+# Readme
+!README.md
+
+# Scripts
+!recoverBeta.cpp
+!graph_beta_error.py
