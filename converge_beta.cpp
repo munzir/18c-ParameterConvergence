@@ -214,6 +214,9 @@ int genPhiMatrixAsFile() {
     // Create file to print the actual balanced poses used in DART
     ofstream balancedPosesFile;
     balancedPosesFile.open("balancedPoses.txt");
+    //Create file to print the actual xCOM of the poses for the ideal robot
+    ofstream realxCOMFile;
+    realxCOMFile.open("realxCOM.txt");
 
     // Find phiMatrix
     cout << "Calculating Phi Matrix ...\n";
@@ -279,6 +282,7 @@ int genPhiMatrixAsFile() {
 
         // Get x center of mass
         double xCOMIdealRobot = idealRobot->getCOM()(0);
+        realxCOMFile << xCOMIdealRobot << "\n";
 
         for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
 
@@ -310,6 +314,11 @@ int genPhiMatrixAsFile() {
         }
     }
 
+    // Close balanced pose file
+    balancedPosesFile.close();
+    // Close the real xCOM file
+    realxCOMFile.close();
+
     // Open output file to write phi matrix
     ofstream phiFile;
     phiFile.open("phiMatrix.txt");
@@ -318,9 +327,6 @@ int genPhiMatrixAsFile() {
     phiFile << phiMatrix;
     phiFile.close();
     cout << "|-> Done\n";
-
-    // Close balanced pose file
-    balancedPosesFile.close();
 
     return 0;
 }
