@@ -95,42 +95,40 @@ int genPhiMatrixAsFile() {
 
     // Put a hard stop on reading poses just in case
     // INPUT on below line (Hard stop to number of pose readings)
-    //int controlPoseNums = 4700;
     int controlPoseNums = 1000;
     // INPUT on below line (lines to skip so an even distribution of samples can
     // be taken) Dependent on file lines
-    //int linesToSkip = 65000/controlPoseNums;
+    //int linesToSkip = 1000/controlPoseNums;
 
     int cols = 0, rows = 0;
     double buff[MAXBUFSIZE];
 
     // Read numbers (the pose params)
     ifstream infile;
-    // infile.open("../defaultInit.txt");
     // INPUT on below line (input pose file)
-    infile.open("../krangHardwarePoses.txt");
+    //infile.open("../2_comPoses3ArmPoses.txt");
+    infile.open("../randomPoses5000.txt");
     cout << "Reading input poses ...\n";
-//    int lineNumber = 0;
+    //int lineNumber = 0;
     while(! infile.eof() && rows <= controlPoseNums) {
- //       if (lineNumber == linesToSkip) {
-            string line;
-            getline(infile, line);
+        //if (lineNumber == linesToSkip) {
+        string line;
+        getline(infile, line);
 
-            int temp_cols = 0;
-            stringstream stream(line);
-            while(! stream.eof())
-                stream >> buff[cols*rows+temp_cols++];
+        int temp_cols = 0;
+        stringstream stream(line);
+        while(! stream.eof())
+            stream >> buff[cols*rows+temp_cols++];
+        if (temp_cols == 0)
+            continue;
 
-            if (temp_cols == 0)
-                continue;
+        if (cols == 0)
+            cols = temp_cols;
 
-            if (cols == 0)
-                cols = temp_cols;
-
-            rows++;
-    //        lineNumber = 0;
-   //     }
-  //      lineNumber++;
+        rows++;
+        //lineNumber = 0;
+        //}
+        //lineNumber++;
     }
 
     infile.close();
@@ -197,7 +195,7 @@ int genPhiMatrixAsFile() {
     cout << "|-> Done\n";
     cout << "Creating robot array ...\n";
     // TODO: Need to create an array of pertRobots in a fast time
-    // Create array of robots out of pose loop for fast times
+    // Create array of robots out of pose loop for efficiency
     // then change appropriate values (betaParams(i)) for each robot when
     // going through all the robots
     dart::dynamics::SkeletonPtr pertRobotArray[sizeof(SkeletonPtr) * numPertRobots];
@@ -281,7 +279,6 @@ int genPhiMatrixAsFile() {
 
         // Get x center of mass
         double xCOMIdealRobot = idealRobot->getCOM()(0);
-        // Set position of all perturbed robots to dartPoseParams
 
         for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
 
@@ -289,14 +286,14 @@ int genPhiMatrixAsFile() {
                 pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setMass(betaParams(0, pertRobotNum) + perturbedValue);
             }
             else if (pertRobotNum % bodyParams == 1) {
-                Eigen::Vector3d bodyCOM(betaParams(0, pertRobotNum) + perturbedValue, betaParams(0, pertRobotNum + 1), betaParams(0, pertRobotNum + 2));
-                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyCOM);
+                Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum) + perturbedValue, betaParams(0, pertRobotNum + 1), betaParams(0, pertRobotNum + 2));
+                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 1)));
             } else if (pertRobotNum % bodyParams == 2) {
-                Eigen::Vector3d bodyCOM(betaParams(0, pertRobotNum - 1), betaParams(0, pertRobotNum) + perturbedValue, betaParams(0, pertRobotNum + 1));
-                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyCOM);
+                Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum - 1), betaParams(0, pertRobotNum) + perturbedValue, betaParams(0, pertRobotNum + 1));
+                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 2)));
             } else {
-                Eigen::Vector3d bodyCOM(betaParams(0, pertRobotNum - 2), betaParams(0, pertRobotNum - 1), betaParams(0, pertRobotNum) + perturbedValue);
-                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyCOM);
+                Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum - 2), betaParams(0, pertRobotNum - 1), betaParams(0, pertRobotNum) + perturbedValue);
+                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 3)));
             }
 
             // Set perturbed robot position to pose
@@ -390,8 +387,8 @@ int convergeToBeta() {
     //I think should be read as input but for now let's manually create the
     //perturbation from the ideal beta
     // INPUT on below lines (need to create a prior beta value aka betaHat)
-    double deviation = 0.01;
-    double offset = 0.1;
+    double deviation = 0.00;
+    double offset = 0.0;
     Eigen::MatrixXd nonIdealBetaParams(1, numBodies*bodyParams);
 
     ofstream krangSpecsFile;
@@ -419,11 +416,11 @@ int convergeToBeta() {
     // Initialize constants/hyperparameters
     // Eons (how many times to learn on same dataset)
     // INPUT on below line (eons)
-    int eons = 10;
+    int eons = 1;
 
     // Learning Rate
     // INPUT on below line (learning rate)
-    double n = 0.05;
+    double n = 0.1;
     //0.1
 
     // Regularizes the importance of the masses with respect to the moments
@@ -469,22 +466,24 @@ int convergeToBeta() {
     // Write the prior beta vector
     cout << "Converging to a Beta Vector ...\n";
     betaFile << currBeta << "\n";
+    // Loop through eons
     for (int k = 0; k < eons; k++) {
+    // Loop through the phi matrix
     for (int pose = 0; pose < numInputPoses && hasConverged == 0; pose++) {
         phiVec = phiMatrix.row(pose);
         // Not sure how to get total mass do i use perturbed robot or ideal
         // robot ?
         xCOM = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - totalMass));
 
-        // Is this right way to calculate error or is it just xCOM from above?
-        //xCOMValue = phiVec * currBeta.transpose();
+        xCOMValue = phiVec * currBeta.transpose();
 
         // Use absolute value of error to see if solution is suitable or not
-        if (abs(xCOM(0, 0)) <= suitableError) {
-            hasConverged = 1;
-        }
+        //if (abs(xCOMValue(0, 0)) <= suitableError) {
+        //    hasConverged = 1;
+        //}
+
         // Should/can also write the error to a file for analysis
-        xCOMValuesFile << xCOM << "\n";
+        xCOMValuesFile << xCOMValue << "\n";
 
         delta = phiVec + (u * massIndicatorMatrix);
         // Update currBeta parameter vector
@@ -499,10 +498,9 @@ int convergeToBeta() {
 
     // Write the xCOM error of the last beta and the last pose (so the last pose
     // is used twice with two different betas)
-    xCOM = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - totalMass));
 
-    //xCOMValues = phiVec * currBeta.transpose();
-    xCOMValuesFile << xCOM << "\n";
+    xCOMValue = phiVec * currBeta.transpose();
+    xCOMValuesFile << xCOMValue << "\n";
 
     betaFile.close();
     cout << "|-> Done\n";
