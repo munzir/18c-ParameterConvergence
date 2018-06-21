@@ -12,7 +12,7 @@ Converges to a set of parameters for the robot and outputs:
 TODO
 
 ### Build and Run
-1: Enter the cloned/downloaded project directory
+1: Enter the converge\_beta directory
 
 2: Build the project
 
@@ -24,6 +24,11 @@ TODO
 3: Run the project
 
     ./converge_beta.cpp
+
+## converge\_beta\_opt.cpp
+The same dependencies and build/run procedure as `converge_beta.cpp`.
+The only difference is that this file takes in predetermined balanced poses in
+DART's format. (Poses in which the xCOM is presumed to be 0.)
 
 ## graph\_beta\_values.py
 A script that graphs the generated beta values compared to the ideal values
