@@ -45,4 +45,4 @@ e.g.
 
     python3 ../../graph_beta_values.py xCOMValues.txt betaVectors.txt &
 
-Hint: Append `&` at the end of the command to run it in the background.
+Tip: Append `&` at the end of the command to run it in the background.
