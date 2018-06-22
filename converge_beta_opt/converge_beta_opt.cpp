@@ -51,7 +51,7 @@ int genPhiMatrixAsFile() {
 
     // Put a hard stop on reading poses just in case
     // INPUT on below line (Hard stop to number of pose readings)
-    int controlPoseNums = 1000;
+    int controlPoseNums = 10000;
     // INPUT on below line (lines to skip so an even distribution of samples can
     // be taken) Dependent on file lines
     //int linesToSkip = 1000/controlPoseNums;
@@ -62,7 +62,8 @@ int genPhiMatrixAsFile() {
     // Read numbers (the pose params)
     ifstream infile;
     // INPUT on below line (input pose file)
-    infile.open("../balancedPoses_0-001T.txt");
+    //infile.open("../balancedPoses_0-001T.txt");
+    infile.open("../randomOptPoses10000.txt");
     cout << "Reading input poses ...\n";
     //int lineNumber = 0;
     while(! infile.eof() && rows <= controlPoseNums) {
@@ -324,7 +325,7 @@ int convergeToBeta() {
     // Initialize constants/hyperparameters
     // Eons (how many times to learn on same dataset)
     // INPUT on below line (eons)
-    int eons = 1;
+    int eons = 10;
 
     // Learning Rate
     // INPUT on below line (learning rate)
