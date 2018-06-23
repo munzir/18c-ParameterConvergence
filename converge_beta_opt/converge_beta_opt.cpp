@@ -51,7 +51,9 @@ int genPhiMatrixAsFile() {
 
     // Put a hard stop on reading poses just in case
     // INPUT on below line (Hard stop to number of pose readings)
+    //int controlPoseNums = 300;
     int controlPoseNums = 10000;
+    // Get `complete` convergence with 600ish (1000)
     // INPUT on below line (lines to skip so an even distribution of samples can
     // be taken) Dependent on file lines
     //int linesToSkip = 1000/controlPoseNums;
@@ -297,7 +299,7 @@ int convergeToBeta() {
     //perturbation from the ideal beta
     // INPUT on below lines (need to create a prior beta value aka betaHat)
     double deviation = 0.00;
-    double offset = 0.0;
+    double offset = 0.00;
     Eigen::MatrixXd nonIdealBetaParams(1, numBodies*bodyParams);
 
     ofstream krangSpecsFile;
@@ -325,16 +327,21 @@ int convergeToBeta() {
     // Initialize constants/hyperparameters
     // Eons (how many times to learn on same dataset)
     // INPUT on below line (eons)
-    int eons = 10;
+    int eons = 1;
 
     // Learning Rate
     // INPUT on below line (learning rate)
-    double n = 0.1;
+    double n = 1000.0;
+    // not converging fast enough with 1900, 1700, 1500, 1300 and values below
+    // 500
+    //Best so far with u = 0 n = 1100.0/900.0 would need to do comparisons of
+    //the average of the last 50 values for better decision making
+    //stick with 1000 for now
     //0.1
 
     // Regularizes the importance of the masses with respect to the moments
     // INPUT on below line (mass coefficient for regularization
-    double u = 0.1;
+    double u = 0.0;
     //0.1
 
     // Mass Indicator Matrix
@@ -353,6 +360,9 @@ int convergeToBeta() {
     // Open output file to write xCOM errors
     ofstream xCOMValuesFile;
     xCOMValuesFile.open("xCOMValues.txt");
+    // Open output file to write total mass values
+    ofstream totalMassFile;
+    totalMassFile.open("totalMassValues.txt");
 
     // Update beta params while looping through all the input phi vectors of
     // their respective poses
@@ -365,7 +375,7 @@ int convergeToBeta() {
     Eigen::MatrixXd delta(1, numBetaParams);
 
     Eigen::MatrixXd totalMass(1, 1);
-    totalMass << idealRobot->getMass();
+    //totalMass << idealRobot->getMass();
 
     // 1 means it has converged to a solution with a suitable error
     int hasConverged = 0;
@@ -384,15 +394,17 @@ int convergeToBeta() {
         // robot ?
         xCOM = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - totalMass));
 
+        // Should/can also write the error to a file for analysis
         xCOMValue = phiVec * currBeta.transpose();
+        xCOMValuesFile << xCOMValue << "\n";
+
+        totalMass = massIndicatorMatrix * currBeta.transpose();
+        totalMassFile << totalMass << "\n";
 
         // Use absolute value of error to see if solution is suitable or not
         //if (abs(xCOMValue(0, 0)) <= suitableError) {
         //    hasConverged = 1;
         //}
-
-        // Should/can also write the error to a file for analysis
-        xCOMValuesFile << xCOMValue << "\n";
 
         delta = phiVec + (u * massIndicatorMatrix);
         // Update currBeta parameter vector
@@ -407,9 +419,13 @@ int convergeToBeta() {
 
     // Write the xCOM error of the last beta and the last pose (so the last pose
     // is used twice with two different betas)
+    // Same with the total mass
 
     xCOMValue = phiVec * currBeta.transpose();
     xCOMValuesFile << xCOMValue << "\n";
+
+    totalMass = massIndicatorMatrix * currBeta.transpose();
+    totalMassFile << totalMass << "\n";
 
     betaFile.close();
     cout << "|-> Done\n";

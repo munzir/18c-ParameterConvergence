@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import sys
 
-filename = sys.argv[1]
-betafilename = sys.argv[2]
+xCOMfilename = sys.argv[1]
+totalmassfilename = sys.argv[2]
+betafilename = sys.argv[3]
 
 betaVectors = np.loadtxt(betafilename)
 betaVectors = [x.split() for x in open(betafilename).readlines()]
-#print(betaVectors)
 
 m1 = [float(item[0]) for item in betaVectors]
 xm1 = [float(item[1]) for item in betaVectors]
@@ -60,31 +60,53 @@ m22 = [float(item[84]) for item in betaVectors]
 m23 = [float(item[88]) for item in betaVectors]
 m24 = [float(item[92]) for item in betaVectors]
 
-with open(filename) as f:
-    data = f.read()
+# Read xCOM
+with open(xCOMfilename) as xCOMF:
+    xCOMData = xCOMF.read()
 
-data = data.split('\n')
+xCOMData = xCOMData.split('\n')
 
-y = [row.split(' ')[0] for row in data]
-x = list(range(1, len(y)))
+xCOM = [row.split(' ')[0] for row in xCOMData]
+x = list(range(1, len(xCOM)))
 
-y.pop()
-y = [float(i) for i in y]
+xCOM.pop()
+xCOM = [float(i) for i in xCOM]
 
-#ax1.set_title("Plot title...")
-#ax1.set_xlabel('your x label..')
-#ax1.set_ylabel('your y label...')
+# Read total mass
+with open(totalmassfilename) as totalMassF:
+    totalMassData = totalMassF.read()
 
-fig = plt.figure()
-fig.suptitle("X_CoM")
+totalMassData = totalMassData.split('\n')
 
-ax = fig.add_subplot(111)
-ax.plot(x,y)
-ax.plot(x,[0]*len(x))
+totalMass = [row.split(' ')[0] for row in totalMassData]
+x = list(range(1, len(totalMass)))
 
-ax.set_xlabel('Number of Poses')
-ax.set_ylabel('X_CoM')
+totalMass.pop()
+totalMass = [float(i) for i in totalMass]
 
+# Plot xCOM
+figxCOM = plt.figure()
+figxCOM.suptitle("X_CoM")
+
+axxCOM = figxCOM.add_subplot(111)
+axxCOM.plot(x,xCOM)
+axxCOM.plot(x,[0]*len(x))
+
+axxCOM.set_xlabel('Number of Poses')
+axxCOM.set_ylabel('X_CoM')
+
+# Plot total mass
+figMass = plt.figure()
+figMass.suptitle("Total Mass")
+
+axMass = figMass.add_subplot(111)
+axMass.plot(x,totalMass)
+axMass.plot(x,[162.863]*len(x))
+
+axMass.set_xlabel('Number of Poses')
+axMass.set_ylabel('Total Mass')
+
+# Plot parameters
 fig1 = plt.figure()
 fig1.suptitle("Base")
 ax11 = fig1.add_subplot(221)
