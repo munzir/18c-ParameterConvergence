@@ -9,7 +9,7 @@ Converges to a set of parameters for the robot and outputs:
 - x center of mass estimation as it updates
 
 ### Dependencies
-TODO
+- DART (at least version 6) [Dart Homepage](https://dartsim.github.io)
 
 ### Build and Run
 1: Enter the converge\_beta directory
@@ -39,7 +39,9 @@ Takes in the output files from `converge_beta` in the following order.
 2: beta values file
 
 ### Dependencies
-TODO
+- Numpy [Numpy Installation](https://www.scipy.org/scipylib/download.html)
+- Matplotlib [Matplotlib
+  Installation](https://matplotlib.org/users/installing.html)
 
 ### Run
 1: Run the script

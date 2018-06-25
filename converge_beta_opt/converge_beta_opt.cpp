@@ -16,11 +16,10 @@
 // Output: Converged beta vector as a file
 //
 //
-// Overall Input: Poses in {heading, qBase, etc.} format
+// Overall Input: Poses in dart format
 // Overall Output: Converged beta value
 // Intermediary Input/Output Flow:
-// Input Pose File -> Dart Poses -> Opt Dart Poses -> Phi Matrix
-// Phi Matrix -> Converged Beta
+// Input Pose File -> Phi Matrix -> Converged Beta
 //
 
 ////////////////////////////////////////////////////////////////////////////////
