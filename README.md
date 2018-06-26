@@ -28,7 +28,7 @@ Converges to a set of parameters for the robot and outputs:
 A script that graphs the generated beta values compared to the ideal values
 Takes in the output files from `converge_beta` in the following order.
 
-1: xCoM file
+1: xcom file
 
 2: total mass file
 
@@ -42,10 +42,26 @@ Takes in the output files from `converge_beta` in the following order.
 ### Run
 1: Run the script
 
-    python3 <Path of graph_beta_values> <Path of xCoM file> <Path of total mass file> <Path of beta file>
+    python3 <Path of graph_beta_values> <Path of xcom file> <Path of total mass file> <Path of beta file>
 
 e.g.
 
     python3 ../../graph_beta_values.py xCOMValues.txt totalMassValues.txt betaVectors.txt &
+
+## graph\_xcom\_values.py
+A script that graphs the generated xcom values compared to the zero.
+Takes in an xcom file.
+
+### Dependencies
+Same as `graph_beta_values.py`
+
+### Run
+1: Run the script
+
+    python3 <Path of graph_xcom_values> <Path of xcom file>
+
+e.g.
+
+    python3 ../../graph_xcom_values.py xCOMValues.txt &
 
 Tip: Append `&` at the end of the command to run it in the background.

@@ -9,9 +9,16 @@
 
 # Data Analysis Scripts
 !graph_beta_values.py
+!graph_xcom_values.py
 
 # converge_beta
 !/converge_beta/
 /converge_beta/*
 !/converge_beta/converge_beta.cpp
 !/converge_beta/CMakeLists.txt
+
+# test_beta
+!/test_beta/
+/test_beta/*
+!/test_beta/test_beta.cpp
+!/test_beta/CMakeLists.txt
