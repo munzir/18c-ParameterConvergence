@@ -3,7 +3,6 @@ This project attempts to converge to a set of parameters i.e. beta (mass & CoM f
 
 ## converge\_beta.cpp
 Converges to a set of parameters for the robot and outputs:
-- balanced poses
 - phi matrix
 - parameter vectors (beta) every update
 - x center of mass estimation as it updates
@@ -25,18 +24,13 @@ Converges to a set of parameters for the robot and outputs:
 
     ./converge_beta.cpp
 
-## converge\_beta\_opt.cpp
-The same dependencies and build/run procedure as `converge_beta.cpp`.
-The only difference is that this file takes in predetermined balanced poses in
-DART's format. (Poses in which the xCOM is presumed to be 0.)
-
 ## graph\_beta\_values.py
 A script that graphs the generated beta values compared to the ideal values
 Takes in the output files from `converge_beta` in the following order.
 
 1: xCoM file
-
-2: beta values file
+2: total mass file
+3: beta values file
 
 ### Dependencies
 - Numpy [Numpy Installation](https://www.scipy.org/scipylib/download.html)
@@ -46,10 +40,10 @@ Takes in the output files from `converge_beta` in the following order.
 ### Run
 1: Run the script
 
-    python3 <Path of graph_beta_values> <Path of xCoM file> <Path of beta file>
+    python3 <Path of graph_beta_values> <Path of xCoM file> <Path of total mass file> <Path of beta file>
 
 e.g.
 
-    python3 ../../graph_beta_values.py xCOMValues.txt betaVectors.txt &
+    python3 ../../graph_beta_values.py xCOMValues.txt totalMassValues.txt betaVectors.txt &
 
 Tip: Append `&` at the end of the command to run it in the background.

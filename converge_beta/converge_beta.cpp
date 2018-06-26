@@ -4,8 +4,7 @@
 // Purpose: Determine phi vectors for each input pose
 //   This phi will be used for finding beta (weights of actual robot) via gradient descent
 //
-// Input: Ideal beta={mi, MXi, MYi, ...}, krang urdf model, perturbation value,
-//   potentially unbalanced data points (q/poses) as a file,
+// Input: Ideal beta={mi, MXi, MYi, MZi, ...}, krang urdf model, perturbation value, data points (q/poses) as a file,
 // Output: Phi matrix as a file
 
 // convergeToBeta
@@ -15,155 +14,123 @@
 // Input: Perturbed beta={mi, MXi, MYi, ...}, phi matrix,
 // Output: Converged beta vector as a file
 //
-//
-// Overall Input: Poses in {heading, qBase, etc.} format
+// Overall Input: Poses in dart format
 // Overall Output: Converged beta value
 // Intermediary Input/Output Flow:
-// Input Pose File -> Dart Poses -> Opt Dart Poses -> Phi Matrix
-// Phi Matrix -> Converged Beta
-//
+// Input Pose File -> Phi Matrix -> Converged Beta
 
-////////////////////////////////////////////////////////////////////////////////
-//           Use your search feature to find hardcoded inputs to this script
-//           Search for "INPUT on below"
-////////////////////////////////////////////////////////////////////////////////
-
-// TODO: Need to combine methods together so I am not reading/writing files more
-// than once and not creating multiple copies of the same data
-// TODO: Perform C++ warning checks
-// TODO: Check for memory leaks (valgrind)
-// TODO: Optimize script for speed
-
+// Includes
 #include <dart/dart.hpp>
 #include <dart/utils/urdf/urdf.hpp>
 #include <iostream>
 #include <fstream>
-#include <nlopt.hpp>
 
+// Namespaces
 using namespace std;
 using namespace dart::common;
 using namespace dart::dynamics;
 using namespace dart::simulation;
 using namespace dart::math;
 
+// Defines
 #define MAXBUFSIZE ((int) 1e6)
 
-struct comOptParams {
-  SkeletonPtr robot;
-  Eigen::Matrix<double, 25, 1> qInit;
-};
+// Function Prototypes
+// // Generate Phi Matrix
+Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, double perturbedValue);
 
-double comOptFunc(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data) {
-  comOptParams* optParams = reinterpret_cast<comOptParams *>(my_func_data);
-  Eigen::Matrix<double, 25, 1> q(x.data());
+// // Converge to Beta
+Eigen::MatrixXd convergeToBeta(Eigen::MatrixXd phiMatrix, string fullRobotPath, double maxDeviation, double offset, int eons, int learningRate, int massRegularization, double suitableError, int suitableNumPoses);
 
-  if (!grad.empty()) {
-    Eigen::Matrix<double, 25, 1> mGrad = q-optParams->qInit;
-    Eigen::VectorXd::Map(&grad[0], mGrad.size()) = mGrad;
-  }
-  return (0.5*pow((q-optParams->qInit).norm(), 2));
-}
+// // Read file as matrix
+Eigen::MatrixXd readInputFileAsMatrix(string inputPosesFilename);
 
-double comConstraint(const std::vector<double> &x, std::vector<double> &grad, void *com_const_data) {
-  comOptParams* optParams = reinterpret_cast<comOptParams *>(com_const_data);
-  Eigen::Matrix<double, 25, 1> q(x.data());
-  optParams->robot->setPositions(q);
-  return (pow(optParams->robot->getCOM()(0)-optParams->robot->getPosition(3), 2) \
-    + pow(optParams->robot->getCOM()(1)-optParams->robot->getPosition(4), 2));
-}
+// // Extract filename
+string extractFilename(string filename);
 
-double wheelAxisConstraint(const std::vector<double> &x, std::vector<double> &grad, void *wheelAxis_const_data) {
-  comOptParams* optParams = reinterpret_cast<comOptParams *>(wheelAxis_const_data);
-  Eigen::Matrix<double, 25, 1> q(x.data());
-  optParams->robot->setPositions(q);
-  return optParams->robot->getBodyNode(0)->getTransform().matrix()(2,0);
-}
+// // Random Value
+double fRand(double fMin, double fMax);
 
-double headingConstraint(const std::vector<double> &x, std::vector<double> &grad, void *heading_const_data) {
-  comOptParams* optParams = reinterpret_cast<comOptParams *>(heading_const_data);
-  Eigen::Matrix<double, 25, 1> q(x.data());
-  optParams->robot->setPositions(q);
-  Eigen::Matrix<double, 4, 4> Tf = optParams->robot->getBodyNode(0)->getTransform().matrix();
-  double heading = atan2(Tf(0,0), -Tf(1,0));
-  optParams->robot->setPositions(optParams->qInit);
-  Tf = optParams->robot->getBodyNode(0)->getTransform().matrix();
-  double headingInit = atan2(Tf(0,0), -Tf(1,0));
-  return heading-headingInit;
-}
+// // Absolute Value Average
+double absAverage(Eigen::MatrixXd vector, int index, int total);
 
-int genPhiMatrixAsFile() {
+// TODO: Commandline arguments a default values
+int main() {
+    // INPUT on below line (Random Seed)
+    srand(0);
 
-    // Put a hard stop on reading poses just in case
-    // INPUT on below line (Hard stop to number of pose readings)
-    int controlPoseNums = 1000;
-    // INPUT on below line (lines to skip so an even distribution of samples can
-    // be taken) Dependent on file lines
-    //int linesToSkip = 1000/controlPoseNums;
+    // INPUT on below line (input poses filename)
+    string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
 
-    int cols = 0, rows = 0;
-    double buff[MAXBUFSIZE];
-
-    // Read numbers (the pose params)
-    ifstream infile;
-    // INPUT on below line (input pose file)
-    //infile.open("../2_comPoses3ArmPoses.txt");
-    infile.open("../randomPoses5000.txt");
-    cout << "Reading input poses ...\n";
-    //int lineNumber = 0;
-    while(! infile.eof() && rows <= controlPoseNums) {
-        //if (lineNumber == linesToSkip) {
-        string line;
-        getline(infile, line);
-
-        int temp_cols = 0;
-        stringstream stream(line);
-        while(! stream.eof())
-            stream >> buff[cols*rows+temp_cols++];
-        if (temp_cols == 0)
-            continue;
-
-        if (cols == 0)
-            cols = temp_cols;
-
-        rows++;
-        //lineNumber = 0;
-        //}
-        //lineNumber++;
-    }
-
-    infile.close();
-    cout << "|-> Done\n";
-    rows--;
-
-    // Populate matrix with numbers.
-    // Eigen matrix is transpose of read file
-    // every column is a pose, the rows are the pose params
-    // Heading, qBase, x, y, z, qLWheel, qRWheel, qWaist, qTorso, qKinect,
-    // qLArm0, ..., qLArm6, qRArm0, ..., qRArm6
-
-    int numInputPoses = rows;
-    int numParams = cols;
-
-    Eigen::MatrixXd allInitPoseParamsFromFile(rows, cols);
-    for (int i = 0; i < rows; i++)
-        for (int j = 0; j < cols; j++)
-            allInitPoseParamsFromFile(i,j) = buff[cols*i+j];
-
-    Eigen::MatrixXd allInitPoseParams(cols, rows);
-    allInitPoseParams = allInitPoseParamsFromFile.transpose();
-
-    // Perturbation Value
     // INPUT on below line (perturbation value for finding phi)
-    double perturbedValue = std::pow(1, -17);
+    double perturbedValue = std::pow(1, -300);
 
-    // Instantiate "ideal" robot and n other robots
+    // INPUT on below line (absolute robot path)
+    string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
+
+    // INPUT on below lines (need to create a prior beta value aka betaHat)
+    double maxDeviation = 0.50;
+    double offset = 0.50;
+
+    // Eons (how many times to learn on same dataset)
+    // INPUT on below line (eons)
+    int eons = 1;
+
+    // learning rate not converging fast enough with 1900, 1700, 1500, 1300 and values below 500
+    //Best so far with u = 0 n = 1100.0/900.0 would need to do comparisons of
+    // INPUT on below line (learning rate)
+    double learningRate = 1000;
+
+    // Regularizes the importance of the masses with respect to the moments
+    // INPUT on below line (mass coefficient for regularization)
+    double massRegularization = 0.0;
+
+    // INPUT on below line (satisfactory error value and poses averaged over)
+    double suitableError = 0.002;
+    int suitableNumPoses = 100;
+
+    // INPUT on below line (output filename)
+    string outputBaseName = "betaVectors";
+
+    Eigen::MatrixXd inputPoses = readInputFileAsMatrix(inputPosesFilename);
+
+    Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, fullRobotPath, perturbedValue);
+
+    cout << "Converging to Beta ...\n";
+    Eigen::MatrixXd betaVectors = convergeToBeta(phiMatrix, fullRobotPath, maxDeviation, offset, eons, learningRate, massRegularization, suitableError, suitableNumPoses);
+    cout << "|-> Done\n";
+
+    // Write betaVectors to file
+    string outfilename;
+    string inputName = extractFilename(inputPosesFilename);
+    string ext = ".txt";
+
+    // TODO
+    outfilename = outputBaseName + inputName + ext;
+
+    cout << "Writing Poses to " << outfilename << " ...\n";
+
+    ofstream outfile;
+    outfile.open(outfilename);
+    outfile << betaVectors;
+    outfile.close();
+
+    cout << "|-> Done\n";
+
+}
+
+// // Generate Phi Matrix
+// TODO: Make perturbedRobotArray generation faster
+Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, double perturbedValue) {
+    int numInputPoses = inputPoses.rows();
+    int numParams = inputPoses.cols();
+
+    // Instantiate ideal robot
     cout << "Creating ideal beta vector ...\n";
     dart::utils::DartLoader loader;
-    // INPUT on below line (absolute path of the Krang URDF file)
-    dart::dynamics::SkeletonPtr idealRobot = loader.parseSkeleton("/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf");
+    dart::dynamics::SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
     // Create ideal beta
-    // Wait do we get beta from the ideal robot or give it to the ideal robot?
     // Beta Definition/Format
     // mi, mxi, myi, mzi for each body
 
@@ -193,6 +160,7 @@ int genPhiMatrixAsFile() {
         betaParams(0, i * bodyParams + 3) = zMi;
     }
     cout << "|-> Done\n";
+
     cout << "Creating robot array ...\n";
     // TODO: Need to create an array of pertRobots in a fast time
     // Create array of robots out of pose loop for efficiency
@@ -200,92 +168,38 @@ int genPhiMatrixAsFile() {
     // going through all the robots
     dart::dynamics::SkeletonPtr pertRobotArray[sizeof(SkeletonPtr) * numPertRobots];
     for (int i = 0; i < numPertRobots; i++) {
-
         // TODO: Segfaulting right here
         // Trying to create an array of idealRobots by calling parseSkeleton
         // only once since it is time expenseive
         //memcpy(pertRobotArray[i], idealRobot, sizeof(SkeletonPtr));
 
-        pertRobotArray[i] = loader.parseSkeleton("/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf");
-
+        pertRobotArray[i] = loader.parseSkeleton(fullRobotPath);
     }
 
     cout << "|-> Done\n";
-    // Create file to print the actual balanced poses used in DART
-    ofstream balancedPosesFile;
-    balancedPosesFile.open("balancedPoses.txt");
-    //Create file to print the actual xCOM of the poses for the ideal robot
-    ofstream realxCOMFile;
-    realxCOMFile.open("realxCOM.txt");
 
     // Find phiMatrix
-    cout << "Calculating Phi Matrix ...\n";
     Eigen::MatrixXd phiMatrix(numInputPoses, numPertRobots);
-    double phi = 0;
+    double phi;
+    Eigen::MatrixXd realxCOMVector(numInputPoses, 1);
+    double xCOMIdealRobot;
+    double xCOMPertRobot;
 
-    // Find the pose in DART formats
+    cout << "Generating Phi Matrix ...\n";
+
+    // Loop through all the input poses
     for (int pose = 0; pose < numInputPoses; pose++) {
-        Eigen::Matrix<double, 24, 1> initPoseParams;
-        for (int j = 0; j < numParams; j++) {
-            initPoseParams(j) = allInitPoseParams(j, pose);
-        }
-
-        double headingInit = initPoseParams(0);
-        double qBaseInit = initPoseParams(1);
-        Eigen::Matrix<double, 22, 1> unchangedValues;
-        unchangedValues << initPoseParams.segment(2,22);
-
-        // Calculating the axis angle representation of orientation from headingInit and qBaseInit:
-        // RotX(pi/2)*RotY(-pi/2+headingInit)*RotX(-qBaseInit)
-        Eigen::Transform<double, 3, Eigen::Affine> baseTf = Eigen::Transform<double, 3, Eigen::Affine>::Identity();
-        baseTf.prerotate(Eigen::AngleAxisd(-qBaseInit,Eigen::Vector3d::UnitX())).prerotate(Eigen::AngleAxisd(-M_PI/2+headingInit,Eigen::Vector3d::UnitY())).prerotate(Eigen::AngleAxisd(M_PI/2, Eigen::Vector3d::UnitX()));
-        Eigen::AngleAxisd aa(baseTf.matrix().block<3,3>(0,0));
-
-        // Now compile this data into dartPoseParams
-        Eigen::Matrix<double, 25, 1> dartPoseParams;
-        dartPoseParams << aa.angle()*aa.axis(), unchangedValues;
-
-        // Change Pose such that CoM is right on top of wheel axis
-        // Im not sure on how this works or the accuracy of it
-        // What I am sure is that it changes the input pose to something
-        // different than specified
-        // This value should be recorded
-        const int dof = (const int) idealRobot->getNumDofs();
-        comOptParams optParams;
-        optParams.robot = idealRobot;
-        optParams.qInit << dartPoseParams;
-        nlopt::opt opt(nlopt::LN_COBYLA, dof);
-        std::vector<double> unoptDartPoseParams(dof);
-        double minf;
-        opt.set_min_objective(comOptFunc, &optParams);
-        opt.add_equality_constraint(comConstraint, &optParams, 1e-8);
-        opt.add_equality_constraint(wheelAxisConstraint, &optParams, 1e-8);
-        opt.add_equality_constraint(headingConstraint, &optParams, 1e-8);
-        opt.set_xtol_rel(1e-4);
-        opt.set_maxtime(10);
-        opt.optimize(unoptDartPoseParams, minf);
-        Eigen::Matrix<double, 25, 1> optDartPoseParams(unoptDartPoseParams.data());
-
-        // Print optDartPoseParams since these are the actual poses used in
-        // following calculations
-        // Remember this is in Dart's pose format which is
-        // axis-angle1, axis-angle2, axix-angle3, x, y, z, qLWheel, qRWheel,
-        // qWaist, qTorso, qKinect,
-        // qLArm0, ..., qLArm6, qRArm0, ..., qRArm6
-        // The difference in input pose and dart pose format is the conversion
-        // from heading and base to axis-angle representation
-        // all other values are the same
-        balancedPosesFile << optDartPoseParams.transpose() << "\n";
 
         // Set position of ideal robot to the pose in DART format
-        idealRobot->setPositions(optDartPoseParams);
+        idealRobot->setPositions(inputPoses.row(pose));
 
         // Get x center of mass
-        double xCOMIdealRobot = idealRobot->getCOM()(0);
-        realxCOMFile << xCOMIdealRobot << "\n";
+        xCOMIdealRobot = idealRobot->getCOM()(0);
+        realxCOMVector(pose, 0);
 
         for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
-
+            // TODO: Can i make this another method
+            // Input: Eigen::MatrixXd parameters Output: SkeletonPtr robot with new parameters
             if (pertRobotNum % bodyParams == 0) {
                 pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setMass(betaParams(0, pertRobotNum) + perturbedValue);
             }
@@ -301,22 +215,25 @@ int genPhiMatrixAsFile() {
             }
 
             // Set perturbed robot position to pose
-            pertRobotArray[pertRobotNum]->setPositions(optDartPoseParams);
+            pertRobotArray[pertRobotNum]->setPositions(inputPoses.row(pose));
 
             // Get the center of mass of the perturbedRobot
-            double xCOMpertRobot = pertRobotArray[pertRobotNum]->getCOM()(0);
+            xCOMPertRobot = pertRobotArray[pertRobotNum]->getCOM()(0);
 
             // Calculate phi for betai and pose
-            phi = (xCOMpertRobot - xCOMIdealRobot)/perturbedValue;
+            phi = (xCOMPertRobot - xCOMIdealRobot)/perturbedValue;
 
             // Add phi to phiMatrix and then print it looks cleaner
             phiMatrix(pose, pertRobotNum) = phi;
         }
     }
 
-    // Close balanced pose file
-    balancedPosesFile.close();
-    // Close the real xCOM file
+    cout << "|-> Done\n";
+
+    //Create file to print the actual xCOM of the poses for the ideal robot
+    ofstream realxCOMFile;
+    realxCOMFile.open("realxCOM.txt");
+    realxCOMFile << realxCOMVector;
     realxCOMFile.close();
 
     // Open output file to write phi matrix
@@ -326,57 +243,19 @@ int genPhiMatrixAsFile() {
     // phi should be the same no matter estimation/perturbation
     phiFile << phiMatrix;
     phiFile.close();
-    cout << "|-> Done\n";
 
-    return 0;
+    return phiMatrix;
 }
 
-int convergeToBeta() {
+// // Converge to Beta
+// TODO: Add total mass constraint
+Eigen::MatrixXd convergeToBeta(Eigen::MatrixXd phiMatrix, string fullRobotPath, double maxDeviation, double offset, int eons, int n, int u, double suitableError, int suitableNumPoses) {
+    int numInputPoses = phiMatrix.rows();
+    int numBetaParams = phiMatrix.cols();
 
-    int cols = 0, rows = 0;
-    double buff[MAXBUFSIZE];
-
-    // I feel like there is a better way to read the file (if it fits it ships?)
-    // Read numbers (the pose params)
-    ifstream infile;
-    // infile.open("../defaultInit.txt");
-    // INPUT on below line (input phi matrix file)
-    infile.open("phiMatrix.txt");
-    while(! infile.eof()) {
-        string line;
-        getline(infile, line);
-
-        int temp_cols = 0;
-        stringstream stream(line);
-        while(! stream.eof())
-            stream >> buff[cols*rows+temp_cols++];
-
-        if (temp_cols == 0)
-            continue;
-
-        if (cols == 0)
-            cols = temp_cols;
-
-        rows++;
-    }
-
-    infile.close();
-    //rows--;
-    int numInputPoses = rows;
-    int numBetaParams = cols;
-
-    // Populate matrix with numbers.
-    // every column is a paramCoeff, the rows are the phi vectors for each data
-    // point
-    Eigen::MatrixXd phiMatrix(rows, cols);
-    for (int i = 0; i < rows; i++)
-        for (int j = 0; j < cols; j++)
-            phiMatrix(i, j) = buff[cols*i+j];
-
-    // make idealRobot a copy of krang model
+    // Make idealRobot a copy of krang model
     dart::utils::DartLoader loader;
-    // INPUT on below line (absolute path of the Krang URDF model
-    dart::dynamics::SkeletonPtr idealRobot = loader.parseSkeleton("/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf");
+    dart::dynamics::SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
     // Beta Definition/Format
     // mi, mxi, myi, mzi for each body
@@ -391,10 +270,10 @@ int convergeToBeta() {
 
     //TODO: Need to add perturbation to the ideal beta value read
     //I think should be read as input but for now let's manually create the
-    //perturbation from the ideal beta
-    // INPUT on below lines (need to create a prior beta value aka betaHat)
-    double deviation = 0.00;
-    double offset = 0.0;
+    //perturbation from the ideal beta as random
+        // Random value betwen +/- deviation and add it to ideal value
+    double deviation;
+
     Eigen::MatrixXd nonIdealBetaParams(1, numBodies*bodyParams);
 
     ofstream krangSpecsFile;
@@ -410,29 +289,20 @@ int convergeToBeta() {
 
         krangSpecsFile << namei << " " << mi << " " << xMi << " " << yMi << " " << zMi << "\n";
 
-        nonIdealBetaParams(0, i * bodyParams + 0) = mi + deviation * mi + offset;
+        nonIdealBetaParams(0, i * bodyParams + 0) = mi;
+
+        deviation = fRand(-maxDeviation, maxDeviation);
         nonIdealBetaParams(0, i * bodyParams + 1) = xMi + deviation * xMi + offset;
+
+        deviation = fRand(-maxDeviation, maxDeviation);
         nonIdealBetaParams(0, i * bodyParams + 2) = yMi + deviation * yMi + offset;
+
+        deviation = fRand(-maxDeviation, maxDeviation);
         nonIdealBetaParams(0, i * bodyParams + 3) = zMi + deviation * zMi + offset;
 
     }
 
     krangSpecsFile.close();
-
-    // Initialize constants/hyperparameters
-    // Eons (how many times to learn on same dataset)
-    // INPUT on below line (eons)
-    int eons = 1;
-
-    // Learning Rate
-    // INPUT on below line (learning rate)
-    double n = 0.1;
-    //0.1
-
-    // Regularizes the importance of the masses with respect to the moments
-    // INPUT on below line (mass coefficient for regularization
-    double u = 0.1;
-    //0.1
 
     // Mass Indicator Matrix
     Eigen::MatrixXd massIndicatorMatrix(1, numBetaParams);
@@ -444,17 +314,16 @@ int convergeToBeta() {
         }
     }
 
-    // Open output file to write beta vector
-    ofstream betaFile;
-    betaFile.open("betaVectors.txt");
-    // Open output file to write xCOM errors
+    // Open output file to write xCOM values
     ofstream xCOMValuesFile;
     xCOMValuesFile.open("xCOMValues.txt");
+    // Open output file to write total mass values
+    ofstream totalMassFile;
+    totalMassFile.open("totalMassValues.txt");
 
-    // Update beta params while looping through all the input phi vectors of
-    // their respective poses
+    // Start with adding initial beta to betaVectors
+    Eigen::MatrixXd betaVectors = nonIdealBetaParams;
     Eigen::MatrixXd currBeta = nonIdealBetaParams;
-    Eigen::MatrixXd nextBeta(1, numBetaParams);
 
     Eigen::MatrixXd phiVec(1, numBetaParams);
     Eigen::MatrixXd xCOM(1, 1);
@@ -466,58 +335,123 @@ int convergeToBeta() {
 
     // 1 means it has converged to a solution with a suitable error
     int hasConverged = 0;
-    // INPUT on below line (satisfactory error value)
-    double suitableError = 0;
 
-    // Write the prior beta vector
-    cout << "Converging to a Beta Vector ...\n";
-    betaFile << currBeta << "\n";
     // Loop through eons
     for (int k = 0; k < eons; k++) {
-    // Loop through the phi matrix
+    // Loop through the phi matrix to calculate the beta vectors
     for (int pose = 0; pose < numInputPoses && hasConverged == 0; pose++) {
         phiVec = phiMatrix.row(pose);
-        // Not sure how to get total mass do i use perturbed robot or ideal
-        // robot ?
         xCOM = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - totalMass));
 
+        // Should/can also write the xCOM to a file for analysis
+        // TODO: Should I get xCOM from Dart method (more accurate)
         xCOMValue = phiVec * currBeta.transpose();
-
-        // Use absolute value of error to see if solution is suitable or not
-        //if (abs(xCOMValue(0, 0)) <= suitableError) {
-        //    hasConverged = 1;
-        //}
-
-        // Should/can also write the error to a file for analysis
         xCOMValuesFile << xCOMValue << "\n";
+
+        totalMass = massIndicatorMatrix * currBeta.transpose();
+        totalMassFile << totalMass << "\n";
+
+        // Use absolute value of average error to see if solution is suitable or not
+        if (pose >= suitableNumPoses && absAverage(xCOMValue, pose, suitableNumPoses) <= suitableError) {
+            hasConverged = 1;
+        }
 
         delta = phiVec + (u * massIndicatorMatrix);
         // Update currBeta parameter vector
         // currBeta = currBeta - n * delta;
         currBeta = currBeta - (n * (xCOM * delta));
 
-        // Write the updated beta vector
-        betaFile << currBeta << "\n";
+        // Append the updated beta vector
+        Eigen::MatrixXd tmp(betaVectors.rows()+currBeta.rows(), currBeta.cols());
+        tmp << betaVectors,
+               currBeta;
+        betaVectors = tmp;
 
     }
     }
 
-    // Write the xCOM error of the last beta and the last pose (so the last pose
+    // Write the xCOM value of the last beta and the last pose (so the last pose
     // is used twice with two different betas)
+    // Same with the total mass
 
     xCOMValue = phiVec * currBeta.transpose();
     xCOMValuesFile << xCOMValue << "\n";
 
-    betaFile.close();
-    cout << "|-> Done\n";
+    totalMass = massIndicatorMatrix * currBeta.transpose();
+    totalMassFile << totalMass << "\n";
+
     xCOMValuesFile.close();
 
-    return 0;
+    return betaVectors;
 }
 
-int main() {
-    genPhiMatrixAsFile();
-    convergeToBeta();
+// // Random Value
+double fRand(double fMin, double fMax) {
+    double f = (double)rand() / RAND_MAX;
+    return fMin + f * (fMax - fMin);
 }
 
+// // Absolute Value Average Value
+// TODO
+double absAverage(Eigen::MatrixXd vector, int index, int total) {
+    return 1;
+}
 
+// // Read file as Matrix
+Eigen::MatrixXd readInputFileAsMatrix(string inputPosesFilename) {
+    // Read numbers (the pose params)
+    ifstream infile;
+    infile.open(inputPosesFilename);
+
+    cout << "Reading input poses ...\n";
+
+    int cols = 0, rows = 0;
+    double buff[MAXBUFSIZE];
+
+    while(! infile.eof()) {
+        string line;
+        getline(infile, line);
+
+        int temp_cols = 0;
+        stringstream stream(line);
+        while(! stream.eof())
+            stream >> buff[cols*rows+temp_cols++];
+        if (temp_cols == 0)
+            continue;
+
+        if (cols == 0)
+            cols = temp_cols;
+
+        rows++;
+    }
+
+    infile.close();
+    rows--;
+
+    cout << "|-> Done\n";
+
+    // Populate matrix with numbers.
+    Eigen::MatrixXd outputMatrix(rows, cols);
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            outputMatrix(i,j) = buff[cols*i+j];
+
+    return outputMatrix;
+}
+
+// // Extract Filename
+string extractFilename(string filename) {
+    // Remove directory if present.
+    // Do this before extension removal incase directory has a period character.
+    const size_t last_slash_idx = filename.find_last_of("\\/");
+    if (std::string::npos != last_slash_idx) {
+        filename.erase(0, last_slash_idx + 1);
+    }
+    // Remove extension if present.
+    const size_t period_idx = filename.rfind('.');
+    if (std::string::npos != period_idx) {
+        filename.erase(period_idx);
+    }
+
+    return filename;
+}

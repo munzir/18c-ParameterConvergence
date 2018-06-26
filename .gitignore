@@ -15,9 +15,3 @@
 /converge_beta/*
 !/converge_beta/converge_beta.cpp
 !/converge_beta/CMakeLists.txt
-
-# converge_beta_opt
-!/converge_beta_opt/
-/converge_beta_opt/*
-!/converge_beta_opt/converge_beta_opt.cpp
-!/converge_beta_opt/CMakeLists.txt
