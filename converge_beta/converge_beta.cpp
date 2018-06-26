@@ -42,6 +42,9 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
 // // Converge to Beta
 Eigen::MatrixXd convergeToBeta(Eigen::MatrixXd phiMatrix, string fullRobotPath, double maxDeviation, double offset, int eons, int learningRate, int massRegularization, double suitableError, int suitableNumPoses);
 
+// // Change robot's beta values (parameters)
+SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd beta, int bodyParams);
+
 // // Read file as matrix
 Eigen::MatrixXd readInputFileAsMatrix(string inputPosesFilename);
 
@@ -54,13 +57,16 @@ double fRand(double fMin, double fMax);
 // // Absolute Value Average
 double absAverage(Eigen::MatrixXd vector, int index, int total);
 
+// // Return a copy of input robot
+SkeletonPtr copyRobot(SkeletonPtr robot);
+
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (Random Seed)
     srand(0);
 
     // INPUT on below line (input poses filename)
-    string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
+    string inputPosesFilename = "../custom2comfullbalancenotolunsafesparsed.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(1, -300);
@@ -116,7 +122,6 @@ int main() {
     outfile.close();
 
     cout << "|-> Done\n";
-
 }
 
 // // Generate Phi Matrix
@@ -174,6 +179,7 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
         //memcpy(pertRobotArray[i], idealRobot, sizeof(SkeletonPtr));
 
         pertRobotArray[i] = loader.parseSkeleton(fullRobotPath);
+        //pertRobotArray[i] = copyRobot(idealRobot);
     }
 
     cout << "|-> Done\n";
@@ -255,13 +261,13 @@ Eigen::MatrixXd convergeToBeta(Eigen::MatrixXd phiMatrix, string fullRobotPath, 
 
     // Make idealRobot a copy of krang model
     dart::utils::DartLoader loader;
-    dart::dynamics::SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
+    SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
     // Beta Definition/Format
     // mi, mxi, myi, mzi for each body
     int bodyParams = 4;
     int numBodies = idealRobot->getNumBodyNodes();
-    dart::dynamics::BodyNodePtr bodyi;
+    BodyNodePtr bodyi;
     string namei;
     double mi;
     double xMi;
@@ -271,7 +277,7 @@ Eigen::MatrixXd convergeToBeta(Eigen::MatrixXd phiMatrix, string fullRobotPath, 
     //TODO: Need to add perturbation to the ideal beta value read
     //I think should be read as input but for now let's manually create the
     //perturbation from the ideal beta as random
-        // Random value betwen +/- deviation and add it to ideal value
+    // Random value betwen +/- deviation and add it to ideal value
     double deviation;
 
     Eigen::MatrixXd nonIdealBetaParams(1, numBodies*bodyParams);
@@ -314,24 +320,31 @@ Eigen::MatrixXd convergeToBeta(Eigen::MatrixXd phiMatrix, string fullRobotPath, 
         }
     }
 
+    // Start with adding initial beta to betaVectors
+    Eigen::MatrixXd betaVectors = nonIdealBetaParams;
+    Eigen::MatrixXd currBeta = nonIdealBetaParams;
+
+    // TODO: Not assignming values inside the matrix properly for xCOM and
+    // totalMass
+    Eigen::MatrixXd phiVec(1, numBetaParams);
+    Eigen::MatrixXd xCOM(1, 1);
+    Eigen::MatrixXd xCOMValues((eons*numInputPoses)+1,1);
+    double xCOMValue;
+    Eigen::MatrixXd delta(1, numBetaParams);
+
+    Eigen::MatrixXd totalMassValues((eons*numInputPoses)+1,1);
+    double totalMass;
+    Eigen::MatrixXd idealTotalMass(1, 1);
+    idealTotalMass << idealRobot->getMass();
+
+    SkeletonPtr currRobot;
+
     // Open output file to write xCOM values
     ofstream xCOMValuesFile;
     xCOMValuesFile.open("xCOMValues.txt");
     // Open output file to write total mass values
     ofstream totalMassFile;
     totalMassFile.open("totalMassValues.txt");
-
-    // Start with adding initial beta to betaVectors
-    Eigen::MatrixXd betaVectors = nonIdealBetaParams;
-    Eigen::MatrixXd currBeta = nonIdealBetaParams;
-
-    Eigen::MatrixXd phiVec(1, numBetaParams);
-    Eigen::MatrixXd xCOM(1, 1);
-    Eigen::MatrixXd xCOMValue(1, 1);
-    Eigen::MatrixXd delta(1, numBetaParams);
-
-    Eigen::MatrixXd totalMass(1, 1);
-    totalMass << idealRobot->getMass();
 
     // 1 means it has converged to a solution with a suitable error
     int hasConverged = 0;
@@ -341,20 +354,26 @@ Eigen::MatrixXd convergeToBeta(Eigen::MatrixXd phiMatrix, string fullRobotPath, 
     // Loop through the phi matrix to calculate the beta vectors
     for (int pose = 0; pose < numInputPoses && hasConverged == 0; pose++) {
         phiVec = phiMatrix.row(pose);
-        xCOM = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - totalMass));
+        xCOM = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - idealTotalMass));
 
-        // Should/can also write the xCOM to a file for analysis
-        // TODO: Should I get xCOM from Dart method (more accurate)
-        xCOMValue = phiVec * currBeta.transpose();
-        xCOMValuesFile << xCOMValue << "\n";
+        // Write the xCOM to a file for analysis
+        xCOMValue = (phiVec * currBeta.transpose())(0, 0);
+        // currRobot = setParameters(idealRobot, currBeta, bodyParams);
+        // xCOMValue = currRobot->getCOM()(0);
 
-        totalMass = massIndicatorMatrix * currBeta.transpose();
-        totalMassFile << totalMass << "\n";
+        // Append the next xCOM
+        //xCOMValues(k*pose, 0) = xCOMValue;
+        xCOMValuesFile << xCOMValue << endl;
+
+        totalMass = (massIndicatorMatrix * currBeta.transpose())(0, 0);
+        //totalMassValues(k*pose, 0) = totalMass;
+        totalMassFile << totalMass << endl;
 
         // Use absolute value of average error to see if solution is suitable or not
-        if (pose >= suitableNumPoses && absAverage(xCOMValue, pose, suitableNumPoses) <= suitableError) {
-            hasConverged = 1;
-        }
+        // TODO: Need to properly create xCOMValues
+        //if (pose >= suitableNumPoses && absAverage(xCOMValues, pose, suitableNumPoses) <= suitableError) {
+        //    hasConverged = 1;
+        //}
 
         delta = phiVec + (u * massIndicatorMatrix);
         // Update currBeta parameter vector
@@ -362,29 +381,57 @@ Eigen::MatrixXd convergeToBeta(Eigen::MatrixXd phiMatrix, string fullRobotPath, 
         currBeta = currBeta - (n * (xCOM * delta));
 
         // Append the updated beta vector
-        Eigen::MatrixXd tmp(betaVectors.rows()+currBeta.rows(), currBeta.cols());
-        tmp << betaVectors,
-               currBeta;
-        betaVectors = tmp;
+        Eigen::MatrixXd betaTmp(betaVectors.rows()+currBeta.rows(), currBeta.cols());
+        betaTmp << betaVectors,
+                   currBeta;
+        betaVectors = betaTmp;
 
     }
     }
 
-    // Write the xCOM value of the last beta and the last pose (so the last pose
-    // is used twice with two different betas)
+    // Write the xCOM value of the last beta and the last pose
     // Same with the total mass
+    xCOMValue = (phiVec * currBeta.transpose())(0, 0);
+    // currRobot = setParameters(idealRobot, currBeta, bodyParams);
+    // xCOMValue = currRobot->getCOM()(0);
+    // xCOMValues(eons*numInputPoses, 0) = xCOMValue;
+    xCOMValuesFile << xCOMValue << endl;
 
-    xCOMValue = phiVec * currBeta.transpose();
-    xCOMValuesFile << xCOMValue << "\n";
-
-    totalMass = massIndicatorMatrix * currBeta.transpose();
-    totalMassFile << totalMass << "\n";
-
+    // Open output file to write xCOM values
+    // ofstream xCOMValuesFile;
+    // xCOMValuesFile.open("xCOMValues.txt");
+    // xCOMValuesFile << xCOMValues;
     xCOMValuesFile.close();
+
+    totalMass = (massIndicatorMatrix * currBeta.transpose())(0, 0);
+    // totalMassValues(eons*numInputPoses, 0) = totalMass;
+    totalMassFile << totalMass << endl;
+
+    // Open output file to write total mass values
+    // ofstream totalMassFile;
+    // totalMassFile.open("totalMassValues.txt");
+    // totalMassFile << totalMassValues;
+    totalMassFile.close();
 
     return betaVectors;
 }
 
+// // Create Perturbed parameters
+// TODO
+
+// // Change robot's beta values (parameters)
+SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bodyParams) {
+    Eigen::Vector3d bodyMCOM;
+
+    for (int i = 0; i < betaParams.cols()/bodyParams; i++) {
+        robot->getBodyNode(i)->setMass(betaParams(0, i*bodyParams));
+        bodyMCOM(0) = betaParams(0, i*bodyParams + 1);
+        bodyMCOM(1) = betaParams(0, i*bodyParams + 2);
+        bodyMCOM(2) = betaParams(0, i*bodyParams + 3);
+        robot->getBodyNode(i/bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0, i*bodyParams)));
+    }
+    return robot;
+}
 // // Random Value
 double fRand(double fMin, double fMax) {
     double f = (double)rand() / RAND_MAX;
@@ -454,4 +501,9 @@ string extractFilename(string filename) {
     }
 
     return filename;
+}
+
+// // Return a copy of the passed in robot
+SkeletonPtr copyRobot(SkeletonPtr robot) {
+    return robot;
 }
