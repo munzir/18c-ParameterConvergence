@@ -13,10 +13,12 @@ with open(xCOMfilename) as xCOMF:
 
 xCOMData = xCOMData.split('\n')
 
-xCOM = [row.split(' ')[0] for row in xCOMData]
+xCOM = xCOMData
+# xCOM = [row.split(' ')[0] for row in xCOMData]
 x = list(range(1, len(xCOM)))
 
 xCOM.pop()
+
 xCOM = [float(i) for i in xCOM]
 
 # Plot xCOM

@@ -61,12 +61,15 @@ int main() {
     // INPUT on below line (input poses filename)
     //string inputPosesFilename = "../random500fullbalance0.001000tolunsafe.txt";
     string inputPosesFilename = "../randomOptPoses10000.txt";
+    //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
 
     // INPUT on below line (perturbation value for finding phi)
-    double perturbedValue = std::pow(1, -300);
+    double perturbedValue = std::pow(10, -10);
 
     // INPUT on below line (input beta vector file)
-    string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe.txt";
+    //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe-3filter.txt";
+    //string inputBetaFilename = "../betaVectorsrandomOptPoses10000-3filter.txt";
+    string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe1*10e-3filter.txt";
 
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
@@ -251,8 +254,8 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, string
     SkeletonPtr currRobot;
 
     // Open output file to write xCOM values
-    ofstream xCOMValuesFile;
-    xCOMValuesFile.open("xCOMValues.txt");
+    //ofstream xCOMValuesFile;
+    //xCOMValuesFile.open("xCOMValues.txt");
 
     // Loop through the phi matrix to calculate the beta vectors
     for (int pose = 0; pose < numInputPoses; pose++) {
@@ -264,8 +267,8 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, string
         // xCOMValue = currRobot->getCOM()(0);
 
         // Append the next xCOM
-        //xCOMValues(k*pose, 0) = xCOMValue;
-        xCOMValuesFile << xCOMValue << endl;
+        xCOMValues(pose, 0) = xCOMValue;
+        //xCOMValuesFile << xCOMValue << endl;
 
     }
 
@@ -274,14 +277,14 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, string
     xCOMValue = (phiVec * beta.transpose())(0, 0);
     // currRobot = setParameters(idealRobot, beta, bodyParams);
     // xCOMValue = currRobot->getCOM()(0);
-    // xCOMValues(numInputPoses, 0) = xCOMValue;
-    xCOMValuesFile << xCOMValue << endl;
+    xCOMValues(numInputPoses, 0) = xCOMValue;
+    // xCOMValuesFile << xCOMValue << endl;
 
     // Open output file to write xCOM values
     // ofstream xCOMValuesFile;
     // xCOMValuesFile.open("xCOMValues.txt");
     // xCOMValuesFile << xCOMValues;
-    xCOMValuesFile.close();
+    //xCOMValuesFile.close();
 
     return xCOMValues;
 }

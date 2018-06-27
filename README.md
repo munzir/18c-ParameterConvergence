@@ -6,6 +6,7 @@ Converges to a set of parameters for the robot and outputs:
 - phi matrix
 - parameter vectors (beta) every update
 - x center of mass estimation as it updates
+- filtered poses (the poses actually used to learn)
 
 ### Dependencies
 - DART (at least version 6) [Dart Homepage](https://dartsim.github.io)
