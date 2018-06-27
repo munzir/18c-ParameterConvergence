@@ -30,6 +30,7 @@ using namespace std;
 using namespace dart::common;
 using namespace dart::dynamics;
 using namespace dart::math;
+using namespace dart::utils;
 
 // Defines
 #define MAXBUFSIZE ((int) 1e6)
@@ -55,21 +56,18 @@ SkeletonPtr copyRobot(SkeletonPtr robot);
 
 // TODO: Commandline arguments a default values
 int main() {
-    // INPUT on below line (Random Seed)
-    srand(0);
-
     // INPUT on below line (input poses filename)
     //string inputPosesFilename = "../random500fullbalance0.001000tolunsafe.txt";
-    string inputPosesFilename = "../randomOptPoses10000.txt";
-    //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
+    //string inputPosesFilename = "../randomOptPoses10000.txt";
+    string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -10);
 
     // INPUT on below line (input beta vector file)
     //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe-3filter.txt";
-    //string inputBetaFilename = "../betaVectorsrandomOptPoses10000-3filter.txt";
-    string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe1*10e-3filter.txt";
+    string inputBetaFilename = "../betaVectorsrandomOptPoses100000.000000*10e-3filter.txt";
+    //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe1*10e-3filter.txt";
 
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
@@ -77,12 +75,16 @@ int main() {
     // INPUT on below line (output filename)
     string outputBaseName = "testxCOMValues";
 
+    cout << "Reading input poses ...\n";
     Eigen::MatrixXd inputPoses = readInputFileAsMatrix(inputPosesFilename);
+    cout << "|-> Done\n";
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, fullRobotPath, perturbedValue);
 
+    cout << "Reading converged beta ...\n";
     Eigen::MatrixXd betaVectors = readInputFileAsMatrix(inputBetaFilename);
     Eigen::MatrixXd beta = betaVectors.row(betaVectors.rows() - 1);
+    cout << "|-> Done\n";
 
     cout << "Testing Beta ...\n";
     Eigen::MatrixXd testXCOMValues = testBeta(beta, phiMatrix, fullRobotPath);
@@ -113,9 +115,9 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
     int numParams = inputPoses.cols();
 
     // Instantiate ideal robot
-    cout << "Creating ideal beta vector ...\n";
-    dart::utils::DartLoader loader;
-    dart::dynamics::SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
+    cout << "Creating ideal beta vector, robot array, and perturbing robots ...\n";
+    DartLoader loader;
+    SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
     // Create ideal beta
     // Beta Definition/Format
@@ -123,7 +125,7 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
 
     int bodyParams = 4;
     int numBodies = idealRobot->getNumBodyNodes();
-    dart::dynamics::BodyNodePtr bodyi;
+    BodyNodePtr bodyi;
     string namei;
     double mi;
     double xMi;
@@ -146,14 +148,12 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
         betaParams(0, i * bodyParams + 2) = yMi;
         betaParams(0, i * bodyParams + 3) = zMi;
     }
-    cout << "|-> Done\n";
 
-    cout << "Creating robot array ...\n";
     // TODO: Need to create an array of pertRobots in a fast time
     // Create array of robots out of pose loop for efficiency
     // then change appropriate values (betaParams(i)) for each robot when
     // going through all the robots
-    dart::dynamics::SkeletonPtr pertRobotArray[sizeof(SkeletonPtr) * numPertRobots];
+    SkeletonPtr pertRobotArray[numPertRobots];
     for (int i = 0; i < numPertRobots; i++) {
         // TODO: Segfaulting right here
         // Trying to create an array of idealRobots by calling parseSkeleton
@@ -162,6 +162,24 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
 
         pertRobotArray[i] = loader.parseSkeleton(fullRobotPath);
         //pertRobotArray[i] = copyRobot(idealRobot);
+    }
+
+    for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
+        // TODO: Can i make this another method
+        // Input: Eigen::MatrixXd parameters Output: SkeletonPtr robot with new parameters
+        if (pertRobotNum % bodyParams == 0) {
+            pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setMass(betaParams(0, pertRobotNum) + perturbedValue);
+        }
+        else if (pertRobotNum % bodyParams == 1) {
+            Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum) + perturbedValue, betaParams(0, pertRobotNum + 1), betaParams(0, pertRobotNum + 2));
+            pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 1)));
+        } else if (pertRobotNum % bodyParams == 2) {
+            Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum - 1), betaParams(0, pertRobotNum) + perturbedValue, betaParams(0, pertRobotNum + 1));
+            pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 2)));
+        } else {
+            Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum - 2), betaParams(0, pertRobotNum - 1), betaParams(0, pertRobotNum) + perturbedValue);
+            pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 3)));
+        }
     }
 
     cout << "|-> Done\n";
@@ -186,21 +204,6 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
         realxCOMVector(pose, 0);
 
         for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
-            // TODO: Can i make this another method
-            // Input: Eigen::MatrixXd parameters Output: SkeletonPtr robot with new parameters
-            if (pertRobotNum % bodyParams == 0) {
-                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setMass(betaParams(0, pertRobotNum) + perturbedValue);
-            }
-            else if (pertRobotNum % bodyParams == 1) {
-                Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum) + perturbedValue, betaParams(0, pertRobotNum + 1), betaParams(0, pertRobotNum + 2));
-                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 1)));
-            } else if (pertRobotNum % bodyParams == 2) {
-                Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum - 1), betaParams(0, pertRobotNum) + perturbedValue, betaParams(0, pertRobotNum + 1));
-                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 2)));
-            } else {
-                Eigen::Vector3d bodyMCOM(betaParams(0, pertRobotNum - 2), betaParams(0, pertRobotNum - 1), betaParams(0, pertRobotNum) + perturbedValue);
-                pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setLocalCOM(bodyMCOM/(betaParams(0,pertRobotNum - 3)));
-            }
 
             // Set perturbed robot position to pose
             pertRobotArray[pertRobotNum]->setPositions(inputPoses.row(pose));
@@ -241,11 +244,9 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, string
     int numBetaParams = phiMatrix.cols();
 
     // Make idealRobot a copy of krang model
-    dart::utils::DartLoader loader;
+    DartLoader loader;
     SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
-    // TODO: Not assignming values inside the matrix properly for xCOM and
-    // totalMass
     Eigen::MatrixXd phiVec(1, numBetaParams);
     Eigen::MatrixXd xCOM(1, 1);
     Eigen::MatrixXd xCOMValues(numInputPoses+1,1);
@@ -253,38 +254,26 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, string
 
     SkeletonPtr currRobot;
 
-    // Open output file to write xCOM values
-    //ofstream xCOMValuesFile;
-    //xCOMValuesFile.open("xCOMValues.txt");
-
-    // Loop through the phi matrix to calculate the beta vectors
+    // Loop through the phi matrix to test the beta
     for (int pose = 0; pose < numInputPoses; pose++) {
         phiVec = phiMatrix.row(pose);
 
-        // Write the xCOM to a file for analysis
+        // Add the xCOM to the matrix
         xCOMValue = (phiVec * beta.transpose())(0, 0);
         // currRobot = setParameters(idealRobot, beta, bodyParams);
         // xCOMValue = currRobot->getCOM()(0);
 
         // Append the next xCOM
         xCOMValues(pose, 0) = xCOMValue;
-        //xCOMValuesFile << xCOMValue << endl;
 
     }
 
-    // Write the xCOM value of the last beta and the last pose
+    // Add the xCOM value of the last beta and the last pose
     // Same with the total mass
     xCOMValue = (phiVec * beta.transpose())(0, 0);
     // currRobot = setParameters(idealRobot, beta, bodyParams);
     // xCOMValue = currRobot->getCOM()(0);
     xCOMValues(numInputPoses, 0) = xCOMValue;
-    // xCOMValuesFile << xCOMValue << endl;
-
-    // Open output file to write xCOM values
-    // ofstream xCOMValuesFile;
-    // xCOMValuesFile.open("xCOMValues.txt");
-    // xCOMValuesFile << xCOMValues;
-    //xCOMValuesFile.close();
 
     return xCOMValues;
 }
@@ -312,8 +301,6 @@ Eigen::MatrixXd readInputFileAsMatrix(string inputPosesFilename) {
     ifstream infile;
     infile.open(inputPosesFilename);
 
-    cout << "Reading input poses ...\n";
-
     int cols = 0, rows = 0;
     double buff[MAXBUFSIZE];
 
@@ -336,8 +323,6 @@ Eigen::MatrixXd readInputFileAsMatrix(string inputPosesFilename) {
 
     infile.close();
     rows--;
-
-    cout << "|-> Done\n";
 
     // Populate matrix with numbers.
     Eigen::MatrixXd outputMatrix(rows, cols);
@@ -366,6 +351,7 @@ string extractFilename(string filename) {
 }
 
 // // Return a copy of the passed in robot
+// TODO
 SkeletonPtr copyRobot(SkeletonPtr robot) {
     return robot;
 }

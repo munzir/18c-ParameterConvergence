@@ -22,7 +22,6 @@
 #include <dart/utils/urdf/urdf.hpp>
 #include <iostream>
 #include <fstream>
-#include <cmath>
 
 // Namespaces
 using namespace std;
@@ -65,8 +64,8 @@ int main() {
     srand(0);
 
     // INPUT on below line (input poses filename)
-    string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
-    //string inputPosesFilename = "../randomOptPoses10000.txt";
+    //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
+    string inputPosesFilename = "../randomOptPoses10000.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -10);
@@ -98,7 +97,7 @@ int main() {
 
     // INPUT on below line (threshold to filter out)
     // threshold = mag * 10^exp
-    double mag = 1;
+    double mag = 0;
     int exp = -3;
 
     string outputBaseName = "betaVectors";
