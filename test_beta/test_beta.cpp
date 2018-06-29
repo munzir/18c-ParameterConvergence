@@ -58,16 +58,17 @@ SkeletonPtr copyRobot(SkeletonPtr robot);
 int main() {
     // INPUT on below line (input poses filename)
     //string inputPosesFilename = "../random500fullbalance0.001000tolunsafe.txt";
-    //string inputPosesFilename = "../randomOptPoses10000.txt";
-    string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
+    string inputPosesFilename = "../randomOptPoses10000.txt";
+    //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -10);
 
     // INPUT on below line (input beta vector file)
     //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe-3filter.txt";
-    string inputBetaFilename = "../betaVectorsrandomOptPoses100000.000000*10e-3filter.txt";
+    //string inputBetaFilename = "../betaVectorsrandomOptPoses100000.000000*10e-3filter.txt";
     //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe1*10e-3filter.txt";
+    string inputBetaFilename = "../betaVectorsIdeal.txt";
 
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
@@ -184,14 +185,14 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
 
     cout << "|-> Done\n";
 
+    cout << "Generating Phi Matrix ...\n";
+
     // Find phiMatrix
     Eigen::MatrixXd phiMatrix(numInputPoses, numPertRobots);
     double phi;
     Eigen::MatrixXd realxCOMVector(numInputPoses, 1);
     double xCOMIdealRobot;
     double xCOMPertRobot;
-
-    cout << "Generating Phi Matrix ...\n";
 
     // Loop through all the input poses
     for (int pose = 0; pose < numInputPoses; pose++) {

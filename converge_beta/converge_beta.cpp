@@ -137,8 +137,8 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
 
     // Instantiate ideal robot
     cout << "Creating ideal beta vector, robot array, and perturbing robots ...\n";
-    dart::utils::DartLoader loader;
-    dart::dynamics::SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
+    DartLoader loader;
+    SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
     // Create ideal beta
     // Beta Definition/Format
@@ -146,7 +146,7 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
 
     int bodyParams = 4;
     int numBodies = idealRobot->getNumBodyNodes();
-    dart::dynamics::BodyNodePtr bodyi;
+    BodyNodePtr bodyi;
     string namei;
     double mi;
     double xMi;
@@ -185,13 +185,6 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
         //pertRobotArray[i] = copyRobot(idealRobot);
     }
 
-    // Find phiMatrix
-    Eigen::MatrixXd phiMatrix(numInputPoses, numPertRobots);
-    double phi;
-    Eigen::MatrixXd realxCOMVector(numInputPoses, 1);
-    double xCOMIdealRobot;
-    double xCOMPertRobot;
-
     for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
         if (pertRobotNum % bodyParams == 0) {
             pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum / bodyParams)->setMass(betaParams(0, pertRobotNum) + perturbedValue);
@@ -208,7 +201,15 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
         }
     }
     cout << "|-> Done\n";
+
     cout << "Generating Phi Matrix ...\n";
+
+    // Find phiMatrix
+    Eigen::MatrixXd phiMatrix(numInputPoses, numPertRobots);
+    double phi;
+    Eigen::MatrixXd realxCOMVector(numInputPoses, 1);
+    double xCOMIdealRobot;
+    double xCOMPertRobot;
 
     // Loop through all the input poses
     for (int pose = 0; pose < numInputPoses; pose++) {

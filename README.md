@@ -23,7 +23,7 @@ Converges to a set of parameters for the robot and outputs:
 
 3: Run the project
 
-    ./converge_beta.cpp
+    ./converge_beta
 
 ## graph\_beta\_values.py
 A script that graphs the generated beta values compared to the ideal values
