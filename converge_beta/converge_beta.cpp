@@ -55,9 +55,6 @@ string extractFilename(string filename);
 // // Absolute Value Average
 double absAverage(Eigen::MatrixXd vector, int index, int total);
 
-// // Return a copy of input robot
-SkeletonPtr copyRobot(SkeletonPtr robot);
-
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (Random Seed)
@@ -130,7 +127,6 @@ int main() {
 }
 
 // // Generate Phi Matrix
-// TODO: Make perturbedRobotArray generation faster
 Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, double perturbedValue) {
     int numInputPoses = inputPoses.rows();
     int numParams = inputPoses.cols();
@@ -170,19 +166,9 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
         betaParams(0, i * bodyParams + 3) = zMi;
     }
 
-    // TODO: Need to create an array of pertRobots in a fast time
-    // Create array of robots out of pose loop for efficiency
-    // then change appropriate values (betaParams(i)) for each robot when
-    // going through all the robots
     SkeletonPtr pertRobotArray[numPertRobots];
     for (int i = 0; i < numPertRobots; i++) {
-        // TODO: Segfaulting right here
-        // Trying to create an array of idealRobots by calling parseSkeleton
-        // only once since it is time expenseive
-        //memcpy(pertRobotArray[i], idealRobot, sizeof(SkeletonPtr));
-
-        pertRobotArray[i] = loader.parseSkeleton(fullRobotPath);
-        //pertRobotArray[i] = copyRobot(idealRobot);
+        pertRobotArray[i] = idealRobot->clone();
     }
 
     for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
@@ -526,10 +512,4 @@ string extractFilename(string filename) {
     }
 
     return filename;
-}
-
-// // Return a copy of the passed in robot
-// TODO
-SkeletonPtr copyRobot(SkeletonPtr robot) {
-    return robot;
 }

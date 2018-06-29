@@ -51,9 +51,6 @@ Eigen::MatrixXd readInputFileAsMatrix(string inputPosesFilename);
 // // Extract filename
 string extractFilename(string filename);
 
-// // Return a copy of the passed in robot
-SkeletonPtr copyRobot(SkeletonPtr robot);
-
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (input poses filename)
@@ -66,9 +63,9 @@ int main() {
 
     // INPUT on below line (input beta vector file)
     //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe-3filter.txt";
-    //string inputBetaFilename = "../betaVectorsrandomOptPoses100000.000000*10e-3filter.txt";
+    string inputBetaFilename = "../betaVectorsrandomOptPoses100001.000000*10e-3filter.txt";
     //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe1*10e-3filter.txt";
-    string inputBetaFilename = "../betaVectorsIdeal.txt";
+    //string inputBetaFilename = "../betaVectorsIdeal.txt";
 
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
@@ -150,19 +147,9 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
         betaParams(0, i * bodyParams + 3) = zMi;
     }
 
-    // TODO: Need to create an array of pertRobots in a fast time
-    // Create array of robots out of pose loop for efficiency
-    // then change appropriate values (betaParams(i)) for each robot when
-    // going through all the robots
     SkeletonPtr pertRobotArray[numPertRobots];
     for (int i = 0; i < numPertRobots; i++) {
-        // TODO: Segfaulting right here
-        // Trying to create an array of idealRobots by calling parseSkeleton
-        // only once since it is time expenseive
-        //memcpy(pertRobotArray[i], idealRobot, sizeof(SkeletonPtr));
-
-        pertRobotArray[i] = loader.parseSkeleton(fullRobotPath);
-        //pertRobotArray[i] = copyRobot(idealRobot);
+        pertRobotArray[i] = idealRobot->clone();
     }
 
     for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
@@ -349,10 +336,4 @@ string extractFilename(string filename) {
     }
 
     return filename;
-}
-
-// // Return a copy of the passed in robot
-// TODO
-SkeletonPtr copyRobot(SkeletonPtr robot) {
-    return robot;
 }
