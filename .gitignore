@@ -22,3 +22,12 @@
 /test_beta/*
 !/test_beta/test_beta.cpp
 !/test_beta/CMakeLists.txt
+!/test_beta/betaVectorsIdeal.txt
+!/test_beta/randomOptPoses10000.txt
+!/test_beta/custom2comfullbalancenotolunsafe.txt
+
+# Datasets
+!/converge_beta/
+/converge_beta/*
+!/converge_beta/randomOptPoses10000.txt
+!/converge_beta/custom2comfullbalancenotolunsafe.txt

@@ -38,7 +38,7 @@ using namespace dart::utils;
 Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, double perturbedValue);
 
 // // Converge to Beta
-Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, string fullRobotPath, double maxDeviation, double maxOffset, int eons, int learningRate, int massRegularization, double suitableError, int suitableNumPoses, double mag, int exp);
+Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, string fullRobotPath, double maxDeviation, double maxOffset, int eons, double learningRate, double massRegularization, double suitableError, int suitableNumPoses, double mag, int exp);
 
 // // Change robot's beta values (parameters)
 SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd beta, int bodyParams);
@@ -65,14 +65,14 @@ int main() {
     string inputPosesFilename = "../randomOptPoses10000.txt";
 
     // INPUT on below line (perturbation value for finding phi)
-    double perturbedValue = std::pow(10, -10);
+    double perturbedValue = std::pow(10, -3);
 
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
 
     // INPUT on below lines (need to create a prior beta value aka betaHat)
-    double maxDeviation = 0.50;
-    double maxOffset = 0.50;
+    double maxDeviation = 0.00;
+    double maxOffset = 0.00;
 
     // Eons (how many times to learn on same dataset)
     // INPUT on below line (eons)
@@ -97,7 +97,6 @@ int main() {
     double mag = 0;
     int exp = -3;
 
-    string outputBaseName = "betaVectors";
     string inputName = extractFilename(inputPosesFilename);
 
     cout << "Reading Input Poses ...\n";
@@ -110,20 +109,24 @@ int main() {
     Eigen::MatrixXd betaVectors = convergeToBeta(inputName, inputPoses, phiMatrix, fullRobotPath, maxDeviation, maxOffset, eons, learningRate, massRegularization, suitableError, suitableNumPoses, mag, exp);
     cout << "|-> Done\n";
 
+
     // Write betaVectors to file
     string outfilename;
     string ext = ".txt";
+    string outputBaseName = "betaVectors";
 
     outfilename = outputBaseName + inputName + to_string(mag) + "*10e" + to_string(exp) + "filter" + ext;
 
-    cout << "Writing beta vectors to " << outfilename << " ...\n";
+    cout << "Beta Vectors written to " << outfilename << endl;
 
-    ofstream outfile;
-    outfile.open(outfilename);
-    outfile << betaVectors;
-    outfile.close();
+    //cout << "Writing beta vectors to " << outfilename << " ...\n";
 
-    cout << "|-> Done\n";
+    //ofstream outfile;
+    //outfile.open(outfilename);
+    //outfile << betaVectors;
+    //outfile.close();
+
+    //cout << "|-> Done\n";
 }
 
 // // Generate Phi Matrix
@@ -145,9 +148,9 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
     BodyNodePtr bodyi;
     string namei;
     double mi;
-    double xMi;
-    double yMi;
-    double zMi;
+    double mxi;
+    double myi;
+    double mzi;
 
     Eigen::MatrixXd betaParams(1, numBodies*bodyParams);
     int numPertRobots = numBodies*bodyParams;
@@ -156,14 +159,14 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
         bodyi = idealRobot->getBodyNode(i);
         namei = bodyi->getName();
         mi = bodyi->getMass();
-        xMi = mi * bodyi->getLocalCOM()(0);
-        yMi = mi * bodyi->getLocalCOM()(1);
-        zMi = mi * bodyi->getLocalCOM()(2);
+        mxi = mi * bodyi->getLocalCOM()(0);
+        myi = mi * bodyi->getLocalCOM()(1);
+        mzi = mi * bodyi->getLocalCOM()(2);
 
         betaParams(0, i * bodyParams + 0) = mi;
-        betaParams(0, i * bodyParams + 1) = xMi;
-        betaParams(0, i * bodyParams + 2) = yMi;
-        betaParams(0, i * bodyParams + 3) = zMi;
+        betaParams(0, i * bodyParams + 1) = mxi;
+        betaParams(0, i * bodyParams + 2) = myi;
+        betaParams(0, i * bodyParams + 3) = mzi;
     }
 
     SkeletonPtr pertRobotArray[numPertRobots];
@@ -196,6 +199,13 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
     Eigen::MatrixXd realxCOMVector(numInputPoses, 1);
     double xCOMIdealRobot;
     double xCOMPertRobot;
+    double phiMass;
+    double phiXM;
+    double phiYM;
+    double phiZM;
+    double xcom;
+    double ycom;
+    double zcom;
 
     // Loop through all the input poses
     for (int pose = 0; pose < numInputPoses; pose++) {
@@ -205,7 +215,7 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
 
         // Get x center of mass
         xCOMIdealRobot = idealRobot->getCOM()(0);
-        realxCOMVector(pose, 0);
+        realxCOMVector(pose, 0) = xCOMIdealRobot;
 
         for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
 
@@ -216,7 +226,47 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
             xCOMPertRobot = pertRobotArray[pertRobotNum]->getCOM()(0);
 
             // Calculate phi for betai and pose
-            phi = (xCOMPertRobot - xCOMIdealRobot)/perturbedValue;
+
+            // rhs = a*m + b*m*x + c*m*y + d*m*z
+            // dm = a + bx + cy + dz
+            // dx = bm
+            // dy = cm
+            // dz = dz
+            // a = dm - bx - cy - dz
+            // [b, c, d] = [dx, dy, dz]/m
+            // phi = [a, b, c, d]
+
+            // TODO: How to calculate phiMatrix
+            // Mass
+            if (pertRobotNum % bodyParams == 0) {
+                phiXM = (xCOMPertRobot - xCOMIdealRobot)/(perturbedValue * pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getMass());
+                phiYM = (xCOMPertRobot - xCOMIdealRobot)/(perturbedValue * pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getMass());
+                phiZM = (xCOMPertRobot - xCOMIdealRobot)/(perturbedValue * pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getMass());
+                xcom = pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getLocalCOM()(0);
+                ycom = pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getLocalCOM()(1);
+                zcom = pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getLocalCOM()(2);
+
+                phiMass = (xCOMPertRobot - xCOMIdealRobot)/perturbedValue - phiXM*xcom - phiYM*ycom - phiZM*zcom;
+                phi = phiMass;
+
+            }
+            // mxi
+            else if (pertRobotNum % bodyParams == 1) {
+                phiXM = (xCOMPertRobot - xCOMIdealRobot)/(perturbedValue * pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getMass());
+                phi = phiXM;
+            }
+            // myi
+            else if (pertRobotNum % bodyParams == 2) {
+                phiYM = (xCOMPertRobot - xCOMIdealRobot)/(perturbedValue * pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getMass());
+                phi = phiYM;
+            }
+            // mzi
+            else {
+                phiZM = (xCOMPertRobot - xCOMIdealRobot)/(perturbedValue * pertRobotArray[pertRobotNum]->getBodyNode(pertRobotNum/bodyParams)->getMass());
+                phi = phiZM;
+            }
+
+            phi = (xCOMPertRobot - xCOMIdealRobot)/(perturbedValue);
 
             // Add phi to phiMatrix and then print it looks cleaner
             phiMatrix(pose, pertRobotNum) = phi;
@@ -244,7 +294,7 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, string fullRobotPath, d
 
 // // Converge to Beta
 // TODO: Add total mass constraint
-Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, string fullRobotPath, double maxDeviation, double maxOffset, int eons, int n, int u, double suitableError, int suitableNumPoses, double mag, int exp) {
+Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, string fullRobotPath, double maxDeviation, double maxOffset, int eons, double n, double u, double suitableError, int suitableNumPoses, double mag, int exp) {
     int numInputPoses = phiMatrix.rows();
     int numBetaParams = phiMatrix.cols();
 
@@ -259,9 +309,9 @@ Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eig
     BodyNodePtr bodyi;
     string namei;
     double mi;
-    double xMi;
-    double yMi;
-    double zMi;
+    double mxi;
+    double myi;
+    double mzi;
 
     //TODO: Need to add perturbation to the ideal beta value read
     //I think should be read as input but for now let's manually create the
@@ -280,25 +330,25 @@ Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eig
         bodyi = idealRobot->getBodyNode(i);
         namei = bodyi->getName();
         mi = bodyi->getMass();
-        xMi = mi * bodyi->getLocalCOM()(0);
-        yMi = mi * bodyi->getLocalCOM()(1);
-        zMi = mi * bodyi->getLocalCOM()(2);
+        mxi = mi * bodyi->getLocalCOM()(0);
+        myi = mi * bodyi->getLocalCOM()(1);
+        mzi = mi * bodyi->getLocalCOM()(2);
 
-        krangSpecsFile << namei << " " << mi << " " << xMi << " " << yMi << " " << zMi << "\n";
+        krangSpecsFile << namei << " " << mi << " " << mxi << " " << myi << " " << mzi << "\n";
 
         nonIdealBetaParams(0, i * bodyParams + 0) = mi;
 
         deviation = fRand(-maxDeviation, maxDeviation);
         offset = fRand(-maxOffset, maxOffset);
-        nonIdealBetaParams(0, i * bodyParams + 1) = xMi + deviation * xMi + offset;
+        nonIdealBetaParams(0, i * bodyParams + 1) = mxi + deviation * mxi + offset;
 
         deviation = fRand(-maxDeviation, maxDeviation);
         offset = fRand(-maxOffset, maxOffset);
-        nonIdealBetaParams(0, i * bodyParams + 2) = yMi + deviation * yMi + offset;
+        nonIdealBetaParams(0, i * bodyParams + 2) = myi + deviation * myi + offset;
 
         deviation = fRand(-maxDeviation, maxDeviation);
         offset = fRand(-maxOffset, maxOffset);
-        nonIdealBetaParams(0, i * bodyParams + 3) = zMi + deviation * zMi + offset;
+        nonIdealBetaParams(0, i * bodyParams + 3) = mzi + deviation * mzi + offset;
 
     }
 
@@ -336,6 +386,12 @@ Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eig
     // Base outout filename
     string ext = ".txt";
     string outBaseFilename = inputName + to_string(mag) + "*10e" + to_string(exp) + "filter" + ext;
+    // Open output file to write beta vectors
+    ofstream betaVectorsFile;
+    string betaVectorsFilename = "betaVectors" + outBaseFilename;
+    betaVectorsFile.open(betaVectorsFilename);
+    //Initial beta vector
+    betaVectorsFile << currBeta << endl;
     // Open output file to write poses used
     ofstream filteredPosesFile;
     string filteredPosesFilename = "filteredPoses" + outBaseFilename;
@@ -390,18 +446,23 @@ Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eig
 
             delta = phiVec + (u * massIndicatorMatrix);
             // Update currBeta parameter vector
-            // currBeta = currBeta - n * delta;
+            //currBeta = currBeta - n * delta;
+            //currBeta = currBeta - n * xcom;
+            //cout << xCOM << endl;
             currBeta = currBeta - (n * (xCOM * delta));
 
+            betaVectorsFile << currBeta << endl;
+
             // Append the updated beta vector
-            Eigen::MatrixXd betaTmp(betaVectors.rows()+currBeta.rows(), currBeta.cols());
-            betaTmp << betaVectors,
-                       currBeta;
-            betaVectors = betaTmp;
+            //Eigen::MatrixXd betaTmp(betaVectors.rows()+currBeta.rows(), currBeta.cols());
+            //betaTmp << betaVectors,
+                       //currBeta;
+            //betaVectors = betaTmp;
         }
     }
     }
 
+    betaVectorsFile.close();
     filteredPosesFile.close();
 
     // Write the xCOM value of the last beta and the last pose
