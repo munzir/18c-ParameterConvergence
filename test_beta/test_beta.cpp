@@ -72,10 +72,10 @@ int main() {
     string inputBetaFilename = "../betaVectorsIdeal.txt";
 
     // INPUT on below line (parameters for each body)
-    int bodyParams = 3;
+    int bodyParams = 4;
 
     // INPUT on below line (absolute robot path)
-    string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
+    string fullRobotPath = "/home/panda/myfolder/wholebodycontrol/09-URDF/Krang/Krang.urdf";
 
     // INPUT on below line (output filename)
     string outputBaseName = "testxCOMValues";
@@ -160,20 +160,22 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
         yi = bodyi->getLocalCOM()(1);
         zi = bodyi->getLocalCOM()(2);
 
-        //betaParams(0, i * bodyParams + 0) = mi;
-        betaParams(0, i * bodyParams + 0) = xi;
-        betaParams(0, i * bodyParams + 1) = yi;
-        betaParams(0, i * bodyParams + 2) = zi;
+        betaParams(0, i * bodyParams + 0) = mi;
+        betaParams(0, i * bodyParams + 1) = mi*xi;
+        betaParams(0, i * bodyParams + 2) = mi*yi;
+        betaParams(0, i * bodyParams + 3) = mi*zi;
 
-        //forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi + perturbedValue);
-        forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi + perturbedValue, yi, zi));
-        forwPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi + perturbedValue, zi));
-        forwPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi, zi + perturbedValue));
+        // Note that beta has mass times CoM but the perturbation is only in CoM
+        // so the phi should divide the derivative by mi to make it consistent with our choice of beta
+        forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi + perturbedValue);
+        forwPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi + perturbedValue, yi, zi));
+        forwPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi + perturbedValue, zi));
+        forwPertRobotArray[i * bodyParams + 3]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi, zi + perturbedValue));
 
-        //backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi - perturbedValue);
-        backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi - perturbedValue, yi, zi));
-        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi - perturbedValue, zi));
-        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi, zi - perturbedValue));
+        backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi - perturbedValue);
+        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi - perturbedValue, yi, zi));
+        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi - perturbedValue, zi));
+        backPertRobotArray[i * bodyParams + 3]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi, zi - perturbedValue));
 
     }
 
@@ -183,11 +185,11 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
 
     // Find phiMatrix
     Eigen::MatrixXd phiMatrix(numInputPoses, numPertRobots);
-    double phi;
-    Eigen::MatrixXd realxCOMVector(numInputPoses, 1);
-    double xCOMIdealRobot;
-    double xCOMForwPertRobot;
-    double xCOMBackPertRobot;
+    Eigen::VectorXd phi(bodyParams);
+    Eigen::MatrixXd realxMCOMVector(numInputPoses, 1);
+    double xMCOMIdealRobot;
+    double xMCOMForwPertRobot;
+    double xMCOMBackPertRobot;
 
     // Loop through all the input poses
     for (int pose = 0; pose < numInputPoses; pose++) {
@@ -196,35 +198,69 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
         idealRobot->setPositions(inputPoses.row(pose));
 
         // Get x center of mass
-        xCOMIdealRobot = idealRobot->getCOM()(0);
-        realxCOMVector(pose, 0) = xCOMIdealRobot;
+        xMCOMIdealRobot = idealRobot->getMass()*idealRobot->getCOM()(0);
+        realxMCOMVector(pose, 0) = xMCOMIdealRobot;
 
-        for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
+        // for (int pertRobotNum = 0; pertRobotNum < numPertRobots; pertRobotNum++) {
 
-            // Set perturbed robot position to pose
-            forwPertRobotArray[pertRobotNum]->setPositions(inputPoses.row(pose));
-            backPertRobotArray[pertRobotNum]->setPositions(inputPoses.row(pose));
+        //     // Set perturbed robot position to pose
+        //     forwPertRobotArray[pertRobotNum]->setPositions(inputPoses.row(pose));
+        //     backPertRobotArray[pertRobotNum]->setPositions(inputPoses.row(pose));
 
-            // Get the center of mass of the perturbedRobot
-            xCOMForwPertRobot = forwPertRobotArray[pertRobotNum]->getCOM()(0);
-            xCOMBackPertRobot = backPertRobotArray[pertRobotNum]->getCOM()(0);
+        //     // Get the center of mass of the perturbedRobot
+        //     xCOMForwPertRobot = forwPertRobotArray[pertRobotNum]->getCOM()(0);
+        //     xCOMBackPertRobot = backPertRobotArray[pertRobotNum]->getCOM()(0);
 
-            // Calculate phi for betai and pose
-            phi = (xCOMForwPertRobot - xCOMBackPertRobot)/(2*perturbedValue);
-            //phi = (xCOMForwPertRobot - xCOMIdealRobot)/(perturbedValue);
+        //     // Calculate phi for betai and pose
+        //     phi = (xCOMForwPertRobot - xCOMBackPertRobot)/(2*perturbedValue);
+        //     //phi = (xCOMForwPertRobot - xCOMIdealRobot)/(perturbedValue);
+
+        //     // Add phi to phiMatrix and then print it looks cleaner
+        //     phiMatrix(pose, pertRobotNum) = phi;
+        // }
+        for (int b = 0; b < numBodies; b++) {
+            
+            for(int i=0; i<bodyParams; i++){
+
+                // Set perturbed robot position to pose
+                forwPertRobotArray[b*bodyParams + i]->setPositions(inputPoses.row(pose));
+                backPertRobotArray[b*bodyParams + i]->setPositions(inputPoses.row(pose));
+    
+                // Get the center of mass of the perturbedRobot
+                xMCOMForwPertRobot = forwPertRobotArray[b*bodyParams + i]->getMass()*forwPertRobotArray[b*bodyParams + i]->getCOM()(0);
+                xMCOMBackPertRobot = backPertRobotArray[b*bodyParams + i]->getMass()*backPertRobotArray[b*bodyParams + i]->getCOM()(0);
+
+                // Calculate phi for betai and pose
+                phi(i) = (xMCOMForwPertRobot - xMCOMBackPertRobot)/(2*perturbedValue);
+                // phi(i) = (xCOMForwPertRobot - xCOMIdealRobot)/(perturbedValue);
+            }
+
+            // rhs = a*m + b*m*x + c*m*y + d*m*z 
+            // d_m = a + b*x + c*y + d*z
+            // [d_x, d_y, d_z] = [b*m, c*m, d*m]
+            // [b, c, d] = [d_x, d_y, d_z]/m 
+            // a = d_m - b*x - c*y - d*z
+            bodyi = idealRobot->getBodyNode(b);
+            mi = bodyi->getMass();
+            phi.tail(3) = phi.tail(3)/mi;
+            phi(0) = phi(0) - phi.tail(3).transpose()*bodyi->getLocalCOM(); 
 
             // Add phi to phiMatrix and then print it looks cleaner
-            phiMatrix(pose, pertRobotNum) = phi;
+            phiMatrix.block(pose, b*bodyParams, 1, bodyParams) = phi.transpose();
         }
+
+
     }
+
+    
 
     cout << "|-> Done\n";
 
     //Create file to print the actual xCOM of the poses for the ideal robot
-    ofstream realxCOMFile;
-    realxCOMFile.open("realxCOM.txt");
-    realxCOMFile << realxCOMVector;
-    realxCOMFile.close();
+    ofstream realxMCOMFile;
+    realxMCOMFile.open("realxMCOM.txt");
+    realxMCOMFile << realxMCOMVector;
+    realxMCOMFile.close();
 
     // Open output file to write phi matrix
     ofstream phiFile;
@@ -248,28 +284,28 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen:
     SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
     Eigen::MatrixXd phiVec;
-    Eigen::MatrixXd xCOMPred(numInputPoses,1);
-    Eigen::MatrixXd xCOMReal(numInputPoses,1);
+    Eigen::MatrixXd xMCOMPred(numInputPoses,1);
+    Eigen::MatrixXd xMCOMReal(numInputPoses,1);
 
     SkeletonPtr currRobot = idealRobot->clone();
-    currRobot = setParameters(currRobot, beta, bodyParams);
+    //currRobot = setParameters(currRobot, beta, bodyParams);
 
     // Loop through the phi matrix to test the beta
     for (int pose = 0; pose < numInputPoses; pose++) {
         phiVec = phiMatrix.row(pose);
 
         // Add the xCOM to the matrix
-        xCOMPred(pose, 0) = (phiVec * beta.transpose())(0, 0);
+        xMCOMPred(pose, 0) = (phiVec * beta.transpose())(0, 0);
         currRobot->setPositions(inputPoses.row(pose));
-        xCOMReal(pose, 0) = currRobot->getCOM()(0);
+        xMCOMReal(pose, 0) = currRobot->getMass()*currRobot->getCOM()(0);
 
     }
 
-    Eigen::MatrixXd allXCOM(xCOMReal.rows(), xCOMReal.cols()*3);
-    Eigen::MatrixXd xCOMDiff = xCOMReal - xCOMPred;
-    allXCOM << xCOMReal, xCOMPred, xCOMDiff;
+    Eigen::MatrixXd allMXCOM(xMCOMReal.rows(), xMCOMReal.cols()*3);
+    Eigen::MatrixXd xMCOMDiff = xMCOMReal - xMCOMPred;
+    allMXCOM << xMCOMReal, xMCOMPred, xMCOMDiff;
 
-    return allXCOM;
+    return allMXCOM;
 }
 
 // // Change robot's beta values (parameters)
@@ -315,10 +351,10 @@ Eigen::MatrixXd readIdealBeta(int bodyParams, string fullRobotPath) {
         yi = bodyi->getLocalCOM()(1);
         zi = bodyi->getLocalCOM()(2);
 
-        //betaParams(0, i * bodyParams + 0) = mi;
-        betaParams(0, i * bodyParams + 0) = xi;
-        betaParams(0, i * bodyParams + 1) = yi;
-        betaParams(0, i * bodyParams + 2) = zi;
+        betaParams(0, i * bodyParams + 0) = mi;
+        betaParams(0, i * bodyParams + 1) = mi*xi;
+        betaParams(0, i * bodyParams + 2) = mi*yi;
+        betaParams(0, i * bodyParams + 3) = mi*zi;
 
     }
     return betaParams;
