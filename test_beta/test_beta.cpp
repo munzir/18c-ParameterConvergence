@@ -55,7 +55,8 @@ string extractFilename(string filename);
 int main() {
     // INPUT on below line (input poses filename)
     //string inputPosesFilename = "../random500fullbalance0.001000tolunsafe.txt";
-    string inputPosesFilename = "../randomOptPoses10000.txt";
+    //string inputPosesFilename = "../randomOptPoses10000.txt";
+    string inputPosesFilename = "../random50nonebalancenotolunsafe.txt";
     //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
 
     // INPUT on below line (perturbation value for finding phi)

@@ -25,6 +25,7 @@
 !/test_beta/betaVectorsIdeal.txt
 !/test_beta/randomOptPoses10000.txt
 !/test_beta/custom2comfullbalancenotolunsafe.txt
+!/test_beta/random50nonebalancenotolunsafe.txt
 
 # Datasets
 !/converge_beta/
