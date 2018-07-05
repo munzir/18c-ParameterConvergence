@@ -65,7 +65,7 @@ int main() {
     //string inputPosesFilename = "../randomOptPoses10000.txt";
 
     // INPUT on below line (perturbation value for finding phi)
-    double perturbedValue = std::pow(10, -10);
+    double perturbedValue = std::pow(10, -14);
 
     // INPUT on below line (number of parameters for each body)
     int bodyParams = 3;
@@ -189,9 +189,9 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
         forwPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi + perturbedValue)/mi);
 
         //backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi - perturbedValue);
-        backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi + perturbedValue, myi, mzi)/mi);
-        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi + perturbedValue, mzi)/mi);
-        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi + perturbedValue)/mi);
+        backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi - perturbedValue, myi, mzi)/mi);
+        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi - perturbedValue, mzi)/mi);
+        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi - perturbedValue)/mi);
 
     }
 
@@ -228,8 +228,8 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
             xCOMBackPertRobot = backPertRobotArray[pertRobotNum]->getCOM()(0);
 
             // Calculate phi for betai and pose
-            //phi = (xCOMForwPertRobot - xCOMBackPertRobot)/(2*perturbedValue);
-            phi = (xCOMForwPertRobot - xCOMIdealRobot)/(perturbedValue);
+            phi = (xCOMForwPertRobot - xCOMBackPertRobot)/(2*perturbedValue);
+            //phi = (xCOMForwPertRobot - xCOMIdealRobot)/(perturbedValue);
 
             // Add phi to phiMatrix and then print it looks cleaner
             phiMatrix(pose, pertRobotNum) = phi;
@@ -343,7 +343,7 @@ Eigen::MatrixXd convergeToBeta(string inputName, Eigen::MatrixXd inputPoses, Eig
     Eigen::MatrixXd idealTotalMass(1, 1);
     idealTotalMass << idealRobot->getMass();
 
-    SkeletonPtr currRobot;
+    SkeletonPtr currRobot = idealRobot->clone();
 
     // Base outout filename
     string ext = ".txt";
@@ -462,12 +462,13 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
     double mi;
     int numBodies = betaParams.cols()/bodyParams;
     for (int i = 0; i < numBodies; i++) {
-        mi = betaParams(0, i * bodyParams);
-        bodyMCOM(0) = betaParams(0, i * bodyParams + 1);
-        bodyMCOM(1) = betaParams(0, i * bodyParams + 2);
-        bodyMCOM(2) = betaParams(0, i * bodyParams + 3);
+        //mi = betaParams(0, i * bodyParams);
+        mi = robot->getBodyNode(i)->getMass();
+        bodyMCOM(0) = betaParams(0, i * bodyParams + 0);
+        bodyMCOM(1) = betaParams(0, i * bodyParams + 1);
+        bodyMCOM(2) = betaParams(0, i * bodyParams + 2);
 
-        robot->getBodyNode(i)->setMass(mi);
+        //robot->getBodyNode(i)->setMass(mi);
         robot->getBodyNode(i)->setLocalCOM(bodyMCOM/mi);
     }
     return robot;

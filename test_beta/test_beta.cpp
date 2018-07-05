@@ -63,7 +63,7 @@ int main() {
     //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
 
     // INPUT on below line (perturbation value for finding phi)
-    double perturbedValue = std::pow(10, -14);
+    double perturbedValue = std::pow(10, -8);
 
     // INPUT on below line (input beta vector file)
     //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe-3filter.txt";
@@ -134,9 +134,9 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
     int numBodies = idealRobot->getNumBodyNodes();
     BodyNodePtr bodyi;
     double mi;
-    double mxi;
-    double myi;
-    double mzi;
+    double xi;
+    double yi;
+    double zi;
 
     Eigen::MatrixXd betaParams(1, numBodies*bodyParams);
     int numPertRobots = numBodies*bodyParams;
@@ -156,24 +156,24 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
     for (int i = 0; i < numBodies; i++) {
         bodyi = idealRobot->getBodyNode(i);
         mi = bodyi->getMass();
-        mxi = mi * bodyi->getLocalCOM()(0);
-        myi = mi * bodyi->getLocalCOM()(1);
-        mzi = mi * bodyi->getLocalCOM()(2);
+        xi = bodyi->getLocalCOM()(0);
+        yi = bodyi->getLocalCOM()(1);
+        zi = bodyi->getLocalCOM()(2);
 
         //betaParams(0, i * bodyParams + 0) = mi;
-        betaParams(0, i * bodyParams + 0) = mxi;
-        betaParams(0, i * bodyParams + 1) = myi;
-        betaParams(0, i * bodyParams + 2) = mzi;
+        betaParams(0, i * bodyParams + 0) = xi;
+        betaParams(0, i * bodyParams + 1) = yi;
+        betaParams(0, i * bodyParams + 2) = zi;
 
         //forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi + perturbedValue);
-        forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi + perturbedValue, myi, mzi)/mi);
-        forwPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi + perturbedValue, mzi)/mi);
-        forwPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi + perturbedValue)/mi);
+        forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi + perturbedValue, yi, zi));
+        forwPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi + perturbedValue, zi));
+        forwPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi, zi + perturbedValue));
 
         //backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi - perturbedValue);
-        backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi - perturbedValue, myi, mzi)/mi);
-        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi - perturbedValue, mzi)/mi);
-        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi - perturbedValue)/mi);
+        backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi - perturbedValue, yi, zi));
+        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi - perturbedValue, zi));
+        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(xi, yi, zi - perturbedValue));
 
     }
 
@@ -274,18 +274,18 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen:
 
 // // Change robot's beta values (parameters)
 SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bodyParams) {
-    Eigen::Vector3d bodyMCOM;
+    Eigen::Vector3d bodyCOM;
     double mi;
     int numBodies = betaParams.cols()/bodyParams;
     for (int i = 0; i < numBodies; i++) {
         //mi = betaParams(0, i * bodyParams);
-        mi = robot->getBodyNode(i)->getMass();
-        bodyMCOM(0) = betaParams(0, i * bodyParams + 0);
-        bodyMCOM(1) = betaParams(0, i * bodyParams + 1);
-        bodyMCOM(2) = betaParams(0, i * bodyParams + 2);
+        //mi = robot->getBodyNode(i)->getMass();
+        bodyCOM(0) = betaParams(0, i * bodyParams + 0);
+        bodyCOM(1) = betaParams(0, i * bodyParams + 1);
+        bodyCOM(2) = betaParams(0, i * bodyParams + 2);
 
         //robot->getBodyNode(i)->setMass(mi);
-        robot->getBodyNode(i)->setLocalCOM(bodyMCOM/mi);
+        robot->getBodyNode(i)->setLocalCOM(bodyCOM);
     }
     return robot;
 }
@@ -302,23 +302,23 @@ Eigen::MatrixXd readIdealBeta(int bodyParams, string fullRobotPath) {
     int numBodies = idealRobot->getNumBodyNodes();
     BodyNodePtr bodyi;
     double mi;
-    double mxi;
-    double myi;
-    double mzi;
+    double xi;
+    double yi;
+    double zi;
 
     Eigen::MatrixXd betaParams(1, numBodies*bodyParams);
 
     for (int i = 0; i < numBodies; i++) {
         bodyi = idealRobot->getBodyNode(i);
         mi = bodyi->getMass();
-        mxi = mi * bodyi->getLocalCOM()(0);
-        myi = mi * bodyi->getLocalCOM()(1);
-        mzi = mi * bodyi->getLocalCOM()(2);
+        xi = bodyi->getLocalCOM()(0);
+        yi = bodyi->getLocalCOM()(1);
+        zi = bodyi->getLocalCOM()(2);
 
         //betaParams(0, i * bodyParams + 0) = mi;
-        betaParams(0, i * bodyParams + 0) = mxi;
-        betaParams(0, i * bodyParams + 1) = myi;
-        betaParams(0, i * bodyParams + 2) = mzi;
+        betaParams(0, i * bodyParams + 0) = xi;
+        betaParams(0, i * bodyParams + 1) = yi;
+        betaParams(0, i * bodyParams + 2) = zi;
 
     }
     return betaParams;
