@@ -45,6 +45,9 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen:
 // // Change robot's beta values (parameters)
 SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd beta, int bodyParams);
 
+// // Read ideal beta params from URDF file
+Eigen::MatrixXd readIdealBeta(int bodyParams, string fullRobotPath);
+
 // // Read file as matrix
 Eigen::MatrixXd readInputFileAsMatrix(string inputPosesFilename);
 
@@ -60,7 +63,7 @@ int main() {
     //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
 
     // INPUT on below line (perturbation value for finding phi)
-    double perturbedValue = std::pow(10, -10);
+    double perturbedValue = std::pow(10, -14);
 
     // INPUT on below line (input beta vector file)
     //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe-3filter.txt";
@@ -85,7 +88,11 @@ int main() {
 
     cout << "Reading converged beta ...\n";
     Eigen::MatrixXd betaVectors = readInputFileAsMatrix(inputBetaFilename);
-    Eigen::MatrixXd beta = betaVectors.row(betaVectors.rows() - 1);
+    //Eigen::MatrixXd beta = betaVectors.row(betaVectors.rows() - 1);
+    cout << "|-> Done\n";
+
+    cout << "Generating ideal beta vector ...\n";
+    Eigen::MatrixXd beta = readIdealBeta(bodyParams, fullRobotPath);
     cout << "|-> Done\n";
 
     cout << "Testing Beta ...\n";
@@ -164,9 +171,9 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
         forwPertRobotArray[i * bodyParams + 3]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi + perturbedValue)/mi);
 
         backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi - perturbedValue);
-        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi + perturbedValue, myi, mzi)/mi);
-        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi + perturbedValue, mzi)/mi);
-        backPertRobotArray[i * bodyParams + 3]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi + perturbedValue)/mi);
+        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi - perturbedValue, myi, mzi)/mi);
+        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi - perturbedValue, mzi)/mi);
+        backPertRobotArray[i * bodyParams + 3]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi - perturbedValue)/mi);
 
     }
 
@@ -258,7 +265,11 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen:
 
     }
 
-    return xCOMPred;
+    Eigen::MatrixXd allXCOM(xCOMReal.rows(), xCOMReal.cols()*3);
+    Eigen::MatrixXd xCOMDiff = xCOMReal - xCOMPred;
+    allXCOM << xCOMReal, xCOMPred, xCOMDiff;
+
+    return allXCOM;
 }
 
 // // Change robot's beta values (parameters)
@@ -276,6 +287,40 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
         robot->getBodyNode(i)->setLocalCOM(bodyMCOM/mi);
     }
     return robot;
+}
+
+Eigen::MatrixXd readIdealBeta(int bodyParams, string fullRobotPath) {
+    // Instantiate ideal robot
+    DartLoader loader;
+    SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
+
+    // Create ideal beta
+    // Beta Definition/Format
+    // mi, mxi, myi, mzi for each body
+
+    int numBodies = idealRobot->getNumBodyNodes();
+    BodyNodePtr bodyi;
+    double mi;
+    double mxi;
+    double myi;
+    double mzi;
+
+    Eigen::MatrixXd betaParams(1, numBodies*bodyParams);
+
+    for (int i = 0; i < numBodies; i++) {
+        bodyi = idealRobot->getBodyNode(i);
+        mi = bodyi->getMass();
+        mxi = mi * bodyi->getLocalCOM()(0);
+        myi = mi * bodyi->getLocalCOM()(1);
+        mzi = mi * bodyi->getLocalCOM()(2);
+
+        betaParams(0, i * bodyParams + 0) = mi;
+        betaParams(0, i * bodyParams + 1) = mxi;
+        betaParams(0, i * bodyParams + 2) = myi;
+        betaParams(0, i * bodyParams + 3) = mzi;
+
+    }
+    return betaParams;
 }
 
 // // Read file as Matrix
