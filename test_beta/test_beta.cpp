@@ -72,7 +72,7 @@ int main() {
     string inputBetaFilename = "../betaVectorsIdeal.txt";
 
     // INPUT on below line (parameters for each body)
-    int bodyParams = 4;
+    int bodyParams = 3;
 
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
@@ -160,20 +160,20 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
         myi = mi * bodyi->getLocalCOM()(1);
         mzi = mi * bodyi->getLocalCOM()(2);
 
-        betaParams(0, i * bodyParams + 0) = mi;
-        betaParams(0, i * bodyParams + 1) = mxi;
-        betaParams(0, i * bodyParams + 2) = myi;
-        betaParams(0, i * bodyParams + 3) = mzi;
+        //betaParams(0, i * bodyParams + 0) = mi;
+        betaParams(0, i * bodyParams + 0) = mxi;
+        betaParams(0, i * bodyParams + 1) = myi;
+        betaParams(0, i * bodyParams + 2) = mzi;
 
-        forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi + perturbedValue);
-        forwPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi + perturbedValue, myi, mzi)/mi);
-        forwPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi + perturbedValue, mzi)/mi);
-        forwPertRobotArray[i * bodyParams + 3]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi + perturbedValue)/mi);
+        //forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi + perturbedValue);
+        forwPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi + perturbedValue, myi, mzi)/mi);
+        forwPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi + perturbedValue, mzi)/mi);
+        forwPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi + perturbedValue)/mi);
 
-        backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi - perturbedValue);
-        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi - perturbedValue, myi, mzi)/mi);
-        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi - perturbedValue, mzi)/mi);
-        backPertRobotArray[i * bodyParams + 3]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi - perturbedValue)/mi);
+        //backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setMass(mi - perturbedValue);
+        backPertRobotArray[i * bodyParams + 0]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi - perturbedValue, myi, mzi)/mi);
+        backPertRobotArray[i * bodyParams + 1]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi - perturbedValue, mzi)/mi);
+        backPertRobotArray[i * bodyParams + 2]->getBodyNode(i)->setLocalCOM(Eigen::Vector3d(mxi, myi, mzi - perturbedValue)/mi);
 
     }
 
@@ -278,12 +278,13 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
     double mi;
     int numBodies = betaParams.cols()/bodyParams;
     for (int i = 0; i < numBodies; i++) {
-        mi = betaParams(0, i * bodyParams);
-        bodyMCOM(0) = betaParams(0, i * bodyParams + 1);
-        bodyMCOM(1) = betaParams(0, i * bodyParams + 2);
-        bodyMCOM(2) = betaParams(0, i * bodyParams + 3);
+        //mi = betaParams(0, i * bodyParams);
+        mi = robot->getBodyNode(i)->getMass();
+        bodyMCOM(0) = betaParams(0, i * bodyParams + 0);
+        bodyMCOM(1) = betaParams(0, i * bodyParams + 1);
+        bodyMCOM(2) = betaParams(0, i * bodyParams + 2);
 
-        robot->getBodyNode(i)->setMass(mi);
+        //robot->getBodyNode(i)->setMass(mi);
         robot->getBodyNode(i)->setLocalCOM(bodyMCOM/mi);
     }
     return robot;
@@ -314,10 +315,10 @@ Eigen::MatrixXd readIdealBeta(int bodyParams, string fullRobotPath) {
         myi = mi * bodyi->getLocalCOM()(1);
         mzi = mi * bodyi->getLocalCOM()(2);
 
-        betaParams(0, i * bodyParams + 0) = mi;
-        betaParams(0, i * bodyParams + 1) = mxi;
-        betaParams(0, i * bodyParams + 2) = myi;
-        betaParams(0, i * bodyParams + 3) = mzi;
+        //betaParams(0, i * bodyParams + 0) = mi;
+        betaParams(0, i * bodyParams + 0) = mxi;
+        betaParams(0, i * bodyParams + 1) = myi;
+        betaParams(0, i * bodyParams + 2) = mzi;
 
     }
     return betaParams;
