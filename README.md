@@ -1,7 +1,7 @@
 # 18c: Parameter Convergence
 This project attempts to converge to a set of parameters i.e. beta (mass & CoM for each robot body) given a set of input poses by generating a phi matrix and learning on the input data.
 
-## converge\_beta.cpp
+## train\_beta.cpp
 Converges to a set of parameters for the robot and outputs:
 - phi matrix
 - parameter vectors (beta) every update
@@ -12,7 +12,7 @@ Converges to a set of parameters for the robot and outputs:
 - DART (at least version 6) [Dart Homepage](https://dartsim.github.io)
 
 ### Build and Run
-1: Enter the converge\_beta directory
+1: Enter the param\_converge\train\_beta directory
 
 2: Build the project
 
@@ -23,7 +23,19 @@ Converges to a set of parameters for the robot and outputs:
 
 3: Run the project
 
-    ./converge_beta
+    ./train_beta
+
+## test\_beta.cpp
+Tests a beta value with the ideal beta value comparing the xcom values outputting:
+- xcom due to ideal beta
+- xcom due to converge beta
+- xcom difference
+
+### Dependencies
+Same as train\_beta
+
+### Build and Run
+Same as train\_beta
 
 ## graph\_beta\_values.py
 A script that graphs the generated beta values compared to the ideal values
@@ -47,11 +59,12 @@ Takes in the output files from `converge_beta` in the following order.
 
 e.g.
 
-    python3 ../../graph_beta_values.py xCOMValues.txt totalMassValues.txt betaVectors.txt &
+    python3 ../../../data_analysis/graph_beta_values.py xCOMValues.txt totalMassValues.txt betaVectors.txt &
 
 ## graph\_xcom\_values.py
-A script that graphs the generated xcom values compared to the zero.
-Takes in an xcom file.
+A script that graphs the generated xcom values compared ideal xcom values.
+Takes in xcom file with format of [ideal xcom | predicted xcom | xcom difference].
+Same as outputted by test\_beta
 
 ### Dependencies
 Same as `graph_beta_values.py`
@@ -63,6 +76,6 @@ Same as `graph_beta_values.py`
 
 e.g.
 
-    python3 ../../graph_xcom_values.py xCOMValues.txt &
+    python3 ../../../data_analysis/graph_xcom_values.py xCOMValues.txt &
 
 Tip: Append `&` at the end of the command to run it in the background.
