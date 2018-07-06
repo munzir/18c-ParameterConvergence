@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-project(converge_beta)
+project(train_beta)
 
 find_package(DART 6 REQUIRED COMPONENTS utils-urdf)
 
@@ -8,7 +8,7 @@ add_compile_options(-std=c++11)
 
 include_directories(${DART_INCLUDE_DIRS})
 
-file(GLOB srcs "*.cpp" "*.hpp")
+file(GLOB srcs "train_beta.cpp" "../gen_phi_matrix.cpp" "../gen_phi_matrix.hpp" "../file_ops.cpp" "file_ops.hpp")
 add_executable(${PROJECT_NAME} ${srcs})
 
 target_link_libraries(${PROJECT_NAME} ${DART_LIBRARIES})
