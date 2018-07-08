@@ -62,21 +62,32 @@ int main() {
     int bodyParams = 4;
 
     // INPUT on below line (absolute robot path)
-    string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
+    string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
 
     // INPUT on below line (output filename)
     string outputBaseName = "testxCOMValues";
 
-    cout << "Reading input poses ...\n";
-    Eigen::MatrixXd inputPoses = readInputFileAsMatrix(inputPosesFilename);
-    cout << "|-> Done\n";
+    Eigen::MatrixXd inputPoses;
+    Eigen::MatrixXd beta;
+
+    try {
+        cout << "Reading input poses ...\n";
+        inputPoses = readInputFileAsMatrix(inputPosesFilename);
+        cout << "|-> Done\n";
+    } catch (exception& e) {
+        cout << e.what() << endl;
+    }
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
 
-    cout << "Reading converged beta ...\n";
-    Eigen::MatrixXd betaVectors = readInputFileAsMatrix(inputBetaFilename);
-    Eigen::MatrixXd beta = betaVectors.row(betaVectors.rows() - 1);
-    cout << "|-> Done\n";
+    try {
+        cout << "Reading converged beta ...\n";
+        Eigen::MatrixXd betaVectors = readInputFileAsMatrix(inputBetaFilename);
+        beta = betaVectors.row(betaVectors.rows() - 1);
+        cout << "|-> Done\n";
+    } catch (exception& e) {
+        cout << e.what() << endl;
+    }
 
     if (testIdeal) {
         cout << "Generating ideal beta vector ...\n";
@@ -110,7 +121,6 @@ int main() {
 Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd inputPoses, int bodyParams, string fullRobotPath) {
     int numInputPoses = phiMatrix.rows();
     int numBetaParams = phiMatrix.cols();
-
 
     // Make idealRobot a copy of krang model
     DartLoader loader;

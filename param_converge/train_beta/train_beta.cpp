@@ -42,7 +42,7 @@ double absAverage(Eigen::MatrixXd vector, int index, int total);
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (Random Seed)
-    srand(0);
+    srand(time(0));
 
     // INPUT on below line (input poses filename)
     //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
@@ -55,7 +55,7 @@ int main() {
     int bodyParams = 4;
 
     // INPUT on below line (absolute robot path)
-    string fullRobotPath = "/home/apatel435/Desktop/09-URDF/Krang/Krang.urdf";
+    string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
 
     // INPUT on below lines (need to create a prior beta value aka betaHat)
     double maxDeviation = 0.50;
@@ -88,9 +88,14 @@ int main() {
 
     string inputName = extractFilename(inputPosesFilename);
 
-    cout << "Reading Input Poses ...\n";
-    Eigen::MatrixXd inputPoses = readInputFileAsMatrix(inputPosesFilename);
-    cout << "|-> Done\n";
+    Eigen::MatrixXd inputPoses;
+    try {
+        cout << "Reading Input Poses ...\n";
+        inputPoses = readInputFileAsMatrix(inputPosesFilename);
+        cout << "|-> Done\n";
+    } catch (exception& e) {
+        cout << e.what() << endl;
+    }
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
 
