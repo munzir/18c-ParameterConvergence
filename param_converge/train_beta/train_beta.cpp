@@ -28,16 +28,16 @@ using namespace dart::utils;
 
 // Function Prototypes
 // // Converge to Beta
-Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, int bodyParams, string fullRobotPath, double maxDeviation, double maxOffset, int eons, double learningRate, double massRegularization, double suitableError, int suitableNumPoses, double mag, int exp);
+Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd priorBeta, int bodyParams, string fullRobotPath, int eons, double learningRate, double massRegularization, double mag, int exp);
+
+// // Create a prior beta
+Eigen::MatrixXd createPriorBeta(string fullRobotPath, int bodyParams, double minXCOMError, double maxDeviation, double maxOffset, Eigen::MatrixXd initialPosePhiVec);
 
 // // Change robot's beta values (parameters)
 SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd beta, int bodyParams);
 
 // // Random Value
 double fRand(double fMin, double fMax);
-
-// // Absolute Value Average
-double absAverage(Eigen::MatrixXd vector, int index, int total);
 
 // TODO: Commandline arguments a default values
 int main() {
@@ -57,7 +57,8 @@ int main() {
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
 
-    // INPUT on below lines (need to create a prior beta value aka betaHat)
+    // INPUT on below lines (need to create a prior beta value)
+    double minXCOMError = 0.02;
     double maxDeviation = 0.50;
     double maxOffset = 0.50;
 
@@ -75,11 +76,7 @@ int main() {
 
     // Regularizes the importance of the masses with respect to the moments
     // INPUT on below line (mass coefficient for regularization)
-    double massRegularization = 0.0;
-
-    // INPUT on below line (satisfactory error value and poses averaged over)
-    double suitableError = 0.002;
-    int suitableNumPoses = 100;
+    double massRegularization = 0.00;
 
     // INPUT on below line (threshold to filter out)
     // threshold = mag * 10^exp
@@ -99,8 +96,11 @@ int main() {
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
 
+    Eigen::MatrixXd initialPosePhiVec = phiMatrix.row(0);
+    Eigen::MatrixXd priorBeta = createPriorBeta(fullRobotPath, bodyParams, minXCOMError, maxDeviation, maxOffset, initialPosePhiVec);
+
     cout << "Converging to Beta ...\n";
-    Eigen::MatrixXd betaVectors = trainBeta(inputName, inputPoses, phiMatrix, bodyParams, fullRobotPath, maxDeviation, maxOffset, eons, learningRate, massRegularization, suitableError, suitableNumPoses, mag, exp);
+    Eigen::MatrixXd betaVectors = trainBeta(inputName, inputPoses, phiMatrix, priorBeta, bodyParams, fullRobotPath, eons, learningRate, massRegularization, mag, exp);
     cout << "|-> Done\n";
 
 
@@ -125,64 +125,13 @@ int main() {
 
 // // Converge to Beta
 // TODO: Add total mass constraint
-Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, int bodyParams, string fullRobotPath, double maxDeviation, double maxOffset, int eons, double n, double u, double suitableError, int suitableNumPoses, double mag, int exp) {
+Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd priorBeta, int bodyParams, string fullRobotPath, int eons, double n, double u, double mag, int exp) {
     int numInputPoses = phiMatrix.rows();
     int numBetaParams = phiMatrix.cols();
 
     // Make idealRobot a copy of krang model
     DartLoader loader;
     SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
-
-    // Beta Definition/Format
-    // mi, mxi, myi, mzi for each body
-    int numBodies = idealRobot->getNumBodyNodes();
-    BodyNodePtr bodyi;
-    string namei;
-    double mi;
-    double mxi;
-    double myi;
-    double mzi;
-
-    //TODO: Need to add perturbation to the ideal beta value read
-    //I think should be read as input but for now let's manually create the
-    //perturbation from the ideal beta as random
-    // Random value betwen +/- deviation and add it to ideal value
-    // as well as an offset since some values are zero.
-    double deviation;
-    double offset;
-
-    Eigen::MatrixXd nonIdealBetaParams(1, numBodies*bodyParams);
-
-    ofstream krangSpecsFile;
-    krangSpecsFile.open("krangSpecs.txt");
-
-    for (int i = 0; i < numBodies; i++) {
-        bodyi = idealRobot->getBodyNode(i);
-        namei = bodyi->getName();
-        mi = bodyi->getMass();
-        mxi = mi * bodyi->getLocalCOM()(0);
-        myi = mi * bodyi->getLocalCOM()(1);
-        mzi = mi * bodyi->getLocalCOM()(2);
-
-        krangSpecsFile << namei << " " << mi << " " << mxi << " " << myi << " " << mzi << "\n";
-
-        nonIdealBetaParams(0, i * bodyParams + 0) = mi;
-
-        deviation = fRand(-maxDeviation, maxDeviation);
-        offset = fRand(-maxOffset, maxOffset);
-        nonIdealBetaParams(0, i * bodyParams + 1) = mxi + deviation * mxi + offset;
-
-        deviation = fRand(-maxDeviation, maxDeviation);
-        offset = fRand(-maxOffset, maxOffset);
-        nonIdealBetaParams(0, i * bodyParams + 2) = myi + deviation * myi + offset;
-
-        deviation = fRand(-maxDeviation, maxDeviation);
-        offset = fRand(-maxOffset, maxOffset);
-        nonIdealBetaParams(0, i * bodyParams + 3) = mzi + deviation * mzi + offset;
-
-    }
-
-    krangSpecsFile.close();
 
     // Mass Indicator Matrix
     Eigen::MatrixXd massIndicatorMatrix(1, numBetaParams);
@@ -195,8 +144,8 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     }
 
     // Start with adding initial beta to betaVectors
-    Eigen::MatrixXd betaVectors = nonIdealBetaParams;
-    Eigen::MatrixXd currBeta = nonIdealBetaParams;
+    Eigen::MatrixXd betaVectors = priorBeta;
+    Eigen::MatrixXd currBeta = priorBeta;
 
     // TODO: Not assigning values inside the matrix properly for xCOM and
     // totalMass potential fix in test_beta
@@ -236,8 +185,6 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     string totalMassFilename = "totalMassValues" + outBaseFilename;
     totalMassFile.open(totalMassFilename);
 
-    // 1 means it has converged to a solution with a suitable error
-    int hasConverged = 0;
     // Threshold that signifies if new data is not learning much
     // TODO: This favors learning on parameters that heavily change xcom (i
     // think it should be fine tho: the lower we go the more we compensate for
@@ -247,7 +194,7 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     // Loop through eons
     for (int k = 0; k < eons; k++) {
     // Loop through the phi matrix to calculate the beta vectors
-    for (int pose = 0; pose < numInputPoses && hasConverged == 0; pose++) {
+    for (int pose = 0; pose < numInputPoses; pose++) {
         phiVec = phiMatrix.row(pose);
 
         xCOMValue = (phiVec * currBeta.transpose())(0, 0);
@@ -255,6 +202,8 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
         // xCOMValue = currRobot->getCOM()(0);
 
         // Filter out poses that do not change the xCOM value much
+        // TODO: Can also do an iteration way where the threshold is decreased
+        // along multiple iterations
         if (abs(xCOMValue) >= threshold) {
 
             // Write this pose
@@ -268,12 +217,6 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
             totalMass = (massIndicatorMatrix * currBeta.transpose())(0, 0);
             totalMassValues(k*pose, 0) = totalMass;
             totalMassFile << totalMass << endl;
-
-            // Use absolute value of average error to see if solution is suitable or not
-            // TODO: Need to properly create xCOMValues
-            //if (pose >= suitableNumPoses && absAverage(xCOMValues, pose, suitableNumPoses) <= suitableError) {
-            //    hasConverged = 1;
-            //}
 
             delta = phiVec + (u * massIndicatorMatrix);
             // Update currBeta parameter vector
@@ -323,6 +266,60 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     return betaVectors;
 }
 
+// // Create a prior beta
+Eigen::MatrixXd createPriorBeta(string fullRobotPath, int bodyParams, double minXCOMError, double maxDeviation, double maxOffset, Eigen::MatrixXd initialPosePhiVec) {
+    // Make idealRobot a copy of krang model
+    DartLoader loader;
+    SkeletonPtr robot = loader.parseSkeleton(fullRobotPath);
+
+    // Beta Definition/Format
+    // mi, mxi, myi, mzi for each body
+    int numBodies = robot->getNumBodyNodes();
+    BodyNodePtr bodyi;
+    double mi;
+    double mxi;
+    double myi;
+    double mzi;
+
+    //TODO: Need to add perturbation to the ideal beta value read
+    //I think should be read as input but for now let's manually create the
+    //perturbation from the ideal beta as random
+    // Random value betwen +/- deviation and add it to ideal value
+    // as well as an offset since some values are zero.
+    double deviation;
+    double offset;
+
+    Eigen::MatrixXd priorBeta(1, numBodies*bodyParams);
+    double xCOM;
+
+    while (abs(xCOM) < minXCOMError) {
+        for (int i = 0; i < numBodies; i++) {
+            bodyi = robot->getBodyNode(i);
+            mi = bodyi->getMass();
+            mxi = mi * bodyi->getLocalCOM()(0);
+            myi = mi * bodyi->getLocalCOM()(1);
+            mzi = mi * bodyi->getLocalCOM()(2);
+
+            priorBeta(0, i * bodyParams + 0) = mi;
+
+            deviation = fRand(-maxDeviation, maxDeviation);
+            offset = fRand(-maxOffset, maxOffset);
+            priorBeta(0, i * bodyParams + 1) = mxi + deviation * mxi + offset;
+
+            deviation = fRand(-maxDeviation, maxDeviation);
+            offset = fRand(-maxOffset, maxOffset);
+            priorBeta(0, i * bodyParams + 2) = myi + deviation * myi + offset;
+
+            deviation = fRand(-maxDeviation, maxDeviation);
+            offset = fRand(-maxOffset, maxOffset);
+            priorBeta(0, i * bodyParams + 3) = mzi + deviation * mzi + offset;
+        }
+        xCOM = (initialPosePhiVec * priorBeta.transpose())(0, 0);
+    }
+
+    return priorBeta;
+}
+
 // // Change robot's beta values (parameters)
 SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bodyParams) {
     Eigen::Vector3d bodyMCOM;
@@ -344,10 +341,4 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
 double fRand(double fMin, double fMax) {
     double f = (double)rand() / RAND_MAX;
     return fMin + f * (fMax - fMin);
-}
-
-// // Absolute Value Average Value
-// TODO
-double absAverage(Eigen::MatrixXd vector, int index, int total) {
-    return 1;
 }
