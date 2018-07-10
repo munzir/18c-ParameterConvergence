@@ -34,8 +34,8 @@
 # filter_training_set
 !/param_converge/filter_training_set/
 /param_converge/filter_training_set/*
-!/param_converge/train_beta/filter_training_set.cpp
-!/param_converge/train_beta/CMakeLists.txt
+!/param_converge/filter_training_set/filter_training_set.cpp
+!/param_converge/filter_training_set/CMakeLists.txt
 
 # test_beta
 !/param_converge/test_beta/
@@ -45,9 +45,5 @@
 
 # Datasets
 !/param_converge/train_beta/randomOptPoses10000.txt
-!/param_converge/train_beta/custom2comfullbalancenotolunsafe.txt
 
-!/param_converge/test_beta/betaVectorsIdeal.txt
 !/param_converge/test_beta/randomOptPoses10000.txt
-!/param_converge/test_beta/custom2comfullbalancenotolunsafe.txt
-!/param_converge/test_beta/random50nonebalancenotolunsafe.txt
