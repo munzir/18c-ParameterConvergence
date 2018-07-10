@@ -18,7 +18,7 @@ Eigen::MatrixXd readInputFileAsMatrix(string inputPosesFilename) {
     infile.open(inputPosesFilename);
 
     if (!infile.is_open()) {
-        throw runtime_error(inputPosesFilename + " can not be read, potentially does not exit!");
+        throw runtime_error(inputPosesFilename + " can not be read, potentially does not exist!");
     }
 
     int cols = 0, rows = 0;

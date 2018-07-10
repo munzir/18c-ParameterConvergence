@@ -44,6 +44,6 @@
 !/param_converge/test_beta/CMakeLists.txt
 
 # Datasets
-!/param_converge/train_beta/randomOptPoses10000.txt
-
-!/param_converge/test_beta/randomOptPoses10000.txt
+#!/param_converge/filter_training_set/?.txt
+#!/param_converge/train_beta/?.txt
+#!/param_converge/test_beta/?.txt

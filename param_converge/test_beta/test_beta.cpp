@@ -41,19 +41,14 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (input poses filename)
-    //string inputPosesFilename = "../random500fullbalance0.001000tolunsafe.txt";
-    string inputPosesFilename = "../randomOptPoses10000.txt";
-    //string inputPosesFilename = "../random50nonebalancenotolunsafe.txt";
-    //string inputPosesFilename = "../custom2comfullbalancenotolunsafe.txt";
+    string inputPosesFilename = "../random6003fullbalance0.001000tolsafe.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
 
     // INPUT on below line (input beta vector file)
-    //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe-3filter.txt";
-    string inputBetaFilename = "../betaVectorsrandomOptPoses100002.000000*10e-3filter.txt";
-    //string inputBetaFilename = "../betaVectorscustom2comfullbalancenotolunsafe1*10e-3filter.txt";
-    //string inputBetaFilename = "../betaVectorsIdeal.txt";
+    string inputBetaFilename = "../betaVectorsrandom6003fullbalance0.001000tolsafe.txt";
+    //string inputBetaFilename = "../betaVectorsrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
 
     // INPUT on below line (test with ideal beta)
     bool testIdeal = false;
@@ -76,6 +71,7 @@ int main() {
         cout << "|-> Done\n";
     } catch (exception& e) {
         cout << e.what() << endl;
+        return EXIT_FAILURE;
     }
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
@@ -87,6 +83,7 @@ int main() {
         cout << "|-> Done\n";
     } catch (exception& e) {
         cout << e.what() << endl;
+        return EXIT_FAILURE;
     }
 
     if (testIdeal) {
