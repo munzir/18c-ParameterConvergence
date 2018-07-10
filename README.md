@@ -25,6 +25,16 @@ Converges to a set of parameters for the robot and outputs:
 
     ./train_beta
 
+## filter\_training\_set.cpp
+Same procedure and output as train\_beta, but selectively filters the best poses to train
+on.
+
+### Dependencies
+Same as train\_beta
+
+### Build and Run
+Same as train\_beta
+
 ## test\_beta.cpp
 Tests a beta value with the ideal beta value comparing the xcom values outputting:
 - xcom due to ideal beta
