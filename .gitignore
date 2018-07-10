@@ -31,6 +31,12 @@
 !/param_converge/train_beta/train_beta.cpp
 !/param_converge/train_beta/CMakeLists.txt
 
+# filter_training_set
+!/param_converge/filter_training_set/
+/param_converge/filter_training_set/*
+!/param_converge/train_beta/filter_training_set.cpp
+!/param_converge/train_beta/CMakeLists.txt
+
 # test_beta
 !/param_converge/test_beta/
 /param_converge/test_beta/*
