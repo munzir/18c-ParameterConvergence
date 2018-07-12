@@ -47,8 +47,8 @@ int main() {
     double perturbedValue = std::pow(10, -8);
 
     // INPUT on below line (input beta vector file)
-    string inputBetaFilename = "../betaVectorsrandom6003fullbalance0.001000tolsafe.txt";
-    //string inputBetaFilename = "../betaVectorsrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
+    //string inputBetaFilename = "../betaVectorsrandom6003fullbalance0.001000tolsafe.txt";
+    string inputBetaFilename = "../betaVectorsfilteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
 
     // INPUT on below line (test with ideal beta)
     bool testIdeal = false;

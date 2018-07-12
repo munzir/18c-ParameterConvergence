@@ -42,11 +42,12 @@ double fRand(double fMin, double fMax);
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (Random Seed)
-    //srand(time(0));
-    srand(0);
+    srand(time(0));
+    //srand(0);
 
     // INPUT on below line (input poses filename)
-    string inputPosesFilename = "../random6003fullbalance0.001000tolsafe.txt";
+    //string inputPosesFilename = "../random6003fullbalance0.001000tolsafe.txt";
+    string inputPosesFilename = "../filteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
@@ -87,6 +88,7 @@ int main() {
         cout << "|-> Done\n";
     } catch (exception& e) {
         cout << e.what() << endl;
+        return EXIT_FAILURE;
     }
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
