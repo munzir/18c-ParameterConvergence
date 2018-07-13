@@ -14,8 +14,10 @@ xCOMMatrix = [x.split() for x in open(xCOMFilename).readlines()]
 # Parse columns
 xCOMMatrixLastRow = xCOMMatrix[-1]
 
+#xCOM = list(map(float, xCOMMatrix))
 xCOM = [[float(item) for item in itemList] for itemList in xCOMMatrix]
 #xCOM = [float(item) for item in xCOMMatrixLastRow]
+#print(xCOM)
 xCOM = np.array(xCOM)
 xCOM = np.absolute(xCOM)
 
