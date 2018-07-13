@@ -42,8 +42,8 @@ double fRand(double fMin, double fMax);
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (Random Seed)
-    //srand(time(0));
-    srand(0);
+    srand(time(0));
+    //srand(0);
 
     // INPUT on below line (input poses filename)
     string inputPosesFilename = "../random6003fullbalance0.001000tolsafe.txt";
