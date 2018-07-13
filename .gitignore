@@ -32,6 +32,12 @@
 !/param_converge/train_beta/train_beta.cpp
 !/param_converge/train_beta/CMakeLists.txt
 
+# train_many_beta
+!/param_converge/train_many_beta/
+/param_converge/train_many_beta/*
+!/param_converge/train_many_beta/train_beta.cpp
+!/param_converge/train_many_beta/CMakeLists.txt
+
 # filter_training_set
 !/param_converge/filter_training_set/
 /param_converge/filter_training_set/*
@@ -49,6 +55,12 @@
 /param_converge/test_beta/*
 !/param_converge/test_beta/test_beta.cpp
 !/param_converge/test_beta/CMakeLists.txt
+
+# test_beta
+!/param_converge/test_many_beta/
+/param_converge/test_many_beta/*
+!/param_converge/test_many_beta/test_beta.cpp
+!/param_converge/test_many_beta/CMakeLists.txt
 
 # Datasets
 #!/param_converge/filter_training_set/?.txt
