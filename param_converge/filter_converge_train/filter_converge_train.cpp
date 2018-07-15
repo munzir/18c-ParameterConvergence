@@ -28,7 +28,7 @@ using namespace dart::utils;
 
 // Function Prototypes
 // // Converge to Beta
-Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd priorBetas, int bodyParams, string fullRobotPath, int eons, double learningRate, double massRegularization, double mag, int exp, int numRandomBetas);
+Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd priorBetas, int bodyParams, string fullRobotPath, double learningRate, double massRegularization, double mag, int exp);
 
 // // Create a prior beta
 Eigen::MatrixXd createPriorBeta(string fullRobotPath, int bodyParams, double minXCOMError, double maxDeviation, double maxOffset, Eigen::MatrixXd initialPosePhiVec, int numRandomBetas);
@@ -38,6 +38,14 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd beta, int bodyParam
 
 // // Random Value
 double fRand(double fMin, double fMax);
+
+// // Structs
+struct trainBetaRetVal {
+    Eigen::MatrixXd retFilteredPoses;
+    Eigen::MatrixXd retBetaVectors;
+    Eigen::MatrixXd retXCOMVectors;
+    Eigen::MatrixXd retTotalMassVectors;
+};
 
 // TODO: Commandline arguments a default values
 int main() {
@@ -57,14 +65,13 @@ int main() {
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
 
+    // INPUT on below line (number of random initial betas)
+    int numRandomBetas = 500;
+
     // INPUT on below lines (need to create a prior beta value)
     double minXCOMError = 0.02;
     double maxDeviation = 0.50;
     double maxOffset = 0.50;
-
-    // Eons (how many times to learn on same dataset)
-    // INPUT on below line (eons)
-    int eons = 1;
 
     //Best so far with u = 0 n = 300 would need to do comparisons of
     // INPUT on below line (learning rate)
@@ -83,8 +90,9 @@ int main() {
     double mag = 2;
     int exp = -3;
 
-    // INPUT on below line (number of random initial betas)
-    int numRandomBetas = 500;
+    // INPUT on below line (how many poses to check for convergence)
+    int convergedPoses = 10;
+
 
     string inputName = extractFilename(inputPosesFilename);
 
@@ -99,11 +107,12 @@ int main() {
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
 
+    // TODO: Maybe add the greatest xcom to check for initial error?
     Eigen::MatrixXd initialPosePhiVec = phiMatrix.row(0);
     Eigen::MatrixXd priorBetas = createPriorBeta(fullRobotPath, bodyParams, minXCOMError, maxDeviation, maxOffset, initialPosePhiVec, numRandomBetas);
 
     cout << "Converging to Beta ...\n";
-    Eigen::MatrixXd betaVectors = trainBeta(inputName, inputPoses, phiMatrix, priorBetas, bodyParams, fullRobotPath, eons, learningRate, massRegularization, mag, exp, numRandomBetas);
+    Eigen::MatrixXd betaVectors = trainBeta(inputName, inputPoses, phiMatrix, priorBetas, bodyParams, fullRobotPath, learningRate, massRegularization, mag, exp);
     cout << "\n|-> Done\n";
 
 
@@ -114,23 +123,24 @@ int main() {
 
     outfilename = outputBaseName + to_string(numRandomBetas) + "initialBeta" + inputName + to_string(mag) + "*10e" + to_string(exp) + "filter" + ext;
 
-    cout << "Beta Vectors written to " << outfilename << endl;
+    //cout << "Beta Vectors written to " << outfilename << endl;
 
-    //cout << "Writing beta vectors to " << outfilename << " ...\n";
+    cout << "Writing beta vectors to " << outfilename << " ...\n";
 
-    //ofstream outfile;
-    //outfile.open(outfilename);
-    //outfile << betaVectors;
-    //outfile.close();
+    ofstream outfile;
+    outfile.open(outfilename);
+    outfile << betaVectors;
+    outfile.close();
 
-    //cout << "|-> Done\n";
+    cout << "|-> Done\n";
 }
 
 // // Converge to Beta
 // TODO: Add total mass constraint
-Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd priorBetas, int bodyParams, string fullRobotPath, int eons, double n, double u, double mag, int exp, int numRandomBetas) {
+Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd priorBetas, int bodyParams, string fullRobotPath, double n, double u, double mag, int exp) {
     int numInputPoses = phiMatrix.rows();
-    int numBetaParams = phiMatrix.cols();
+    int numBetas = priorBetas.rows();
+    int numBetaParams = priorBetas.cols();
 
     // Make idealRobot a copy of krang model
     DartLoader loader;
@@ -147,21 +157,20 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     }
 
     // Start with adding initial beta to betaVectors
-    Eigen::MatrixXd betaVectors = priorBetas.row(0);
-    Eigen::MatrixXd currBeta = priorBetas;
+    Eigen::MatrixXd betaVectors(numInputPoses *  numBetas, numBetaParams);
+    betaVectors.block(0, 0, numBetas, numBetaParams) = priorBetas;
+    Eigen::MatrixXd currBeta = betaVectors.block(0, 0, numBetas, numBetaParams);
 
-    // TODO: Not assigning values inside the matrix properly for xCOM and
-    // totalMass potential fix in test_beta
     Eigen::MatrixXd phiVec(1, numBetaParams);
     Eigen::MatrixXd delta(1, numBetaParams);
 
     Eigen::MatrixXd xCOM(1, 1);
     Eigen::MatrixXd xCOMValueVector(1, priorBetas.rows());
-    Eigen::MatrixXd xCOMValues((eons*numInputPoses)+1,1);
+    Eigen::MatrixXd xCOMValues(numInputPoses+1,1);
     double xCOMValue;
     Eigen::MatrixXd xCOMVector(1, currBeta.rows());
 
-    Eigen::MatrixXd totalMassValues((eons*numInputPoses)+1,1);
+    Eigen::MatrixXd totalMassValues(numInputPoses+1,1);
     double totalMass;
     Eigen::MatrixXd totalMassVector(1, currBeta.rows());
     Eigen::MatrixXd idealTotalMass(1, 1);
@@ -172,7 +181,7 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
 
     // Base outout filename
     string ext = ".txt";
-    string outBaseFilename = to_string(numRandomBetas) + "initialBeta" + inputName + to_string(mag) + "*10e" + to_string(exp) + "filter" + ext;
+    string outBaseFilename = to_string(numBetas) + "initialBeta" + inputName + to_string(mag) + "*10e" + to_string(exp) + "filter" + ext;
     // Open output file to write beta vectors
     ofstream betaVectorsFile;
     string betaVectorsFilename = "betaVectors" + outBaseFilename;
@@ -199,8 +208,6 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     double threshold = mag * std::pow(10, exp);
 
     int finPose = 0;
-    // Loop through eons
-    for (int k = 0; k < eons; k++) {
     // Loop through the phi matrix to calculate the beta vectors
     cout << "Pose: 0" << "/" << numInputPoses;
     // TODO: Change stopping condition to the filtering if statement threshold
@@ -284,6 +291,7 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
             currBeta.row(i) = currBeta.row(i) - (n * (xCOMVector.col(i) * delta));
         }
 
+        betaVectors.block() = currBeta;
         betaVectorsFile << currBeta << endl;
 
         // Append the updated beta vector
@@ -318,7 +326,6 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
         }
         finPose++;
     }
-    }
     cout << "\rPose: " << finPose + 1 << "/" << numInputPoses << " Finding Max: " << phiMatrix.rows() << "/" << phiMatrix.rows() << " \t ";
 
     betaVectorsFile.close();
@@ -332,7 +339,7 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     xCOMValuesFile << xCOMVector << endl;
     // currRobot = setParameters(idealRobot, currBeta, bodyParams);
     // xCOMValue = currRobot->getCOM()(0);
-    // xCOMValues(eons*numInputPoses, 0) = xCOMValue;
+    // xCOMValues(numInputPoses, 0) = xCOMValue;
     //xCOMValuesFile << xCOMValue << endl;
 
     // Open output file to write xCOM values
@@ -342,7 +349,7 @@ Eigen::MatrixXd trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     xCOMValuesFile.close();
 
     // totalMass = (massIndicatorMatrix * currBeta.transpose())(0, 0);
-    // totalMassValues(eons*numInputPoses, 0) = totalMass;
+    // totalMassValues(numInputPoses, 0) = totalMass;
     // totalMassFile << totalMass << endl;
     // For multiple betas
     totalMassVector = (massIndicatorMatrix * currBeta.transpose());
