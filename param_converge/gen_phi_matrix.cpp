@@ -10,6 +10,8 @@
 // Includes
 #include <dart/dart.hpp>
 #include <dart/utils/urdf/urdf.hpp>
+#include <iostream>
+#include <fstream>
 #include "gen_phi_matrix.hpp"
 
 // Namespaces
