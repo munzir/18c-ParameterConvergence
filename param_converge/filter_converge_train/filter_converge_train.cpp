@@ -69,7 +69,7 @@ int main() {
     string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
 
     // INPUT on below line (number of random initial betas)
-    int numRandomBetas = 100;
+    int numRandomBetas = 500;
 
     // INPUT on below lines (need to create a prior beta value)
     double minXCOMError = 0.02;
@@ -281,18 +281,12 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     cout << "\rPose: " << pose << "/" << numInputPoses << " Finding Max: " << phiMatrix.rows() << "/" << phiMatrix.rows() << " \t ";
 
     filteredPoses = filteredPoses.topRows(pose);
-    cout << "Error after betaVectors" << endl;
     int betaVectorsTopRows = (pose + 1) * numBetas;
-    cout << "Rows: " << betaVectors.rows() << endl;
-    cout << "Cols: " << betaVectors.cols() << endl;
-    cout << "RRows: " << (pose + 1) * numBetas << endl;
-    cout << "CCols: " << numBetaParams << endl;
     Eigen::MatrixXd betaVectorsTmp = betaVectors.topRows(betaVectorsTopRows);
     //betaVectors = betaVectors.block(0, 0, (pose + 1) * numBetas, numBetaParams);
 
     // Write the xCOM value of the last beta and the last pose
     // Same with the total mass
-    cout << "Error after xCOM" << endl;
     xCOMVector = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - idealTotalMassVector));
     xCOMAllVectors.row(pose) = xCOMVector;
     xCOMAllVectors = xCOMAllVectors.topRows(pose + 1);
