@@ -5,191 +5,143 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import sys
 
-xCOMfilename = sys.argv[1]
-totalmassfilename = sys.argv[2]
-betafilename = sys.argv[3]
+# xCOM file format : xCOMMatrix {Row: Iteration, Col: xCOM for each Beta
+xCOMFilename = sys.argv[1]
+totalMassFilename = sys.argv[2]
+betaFilename = sys.argv[3]
+betaIdealFilename = sys.argv[4]
 
-betaVectors = np.loadtxt(betafilename)
-betaVectors = [x.split() for x in open(betafilename).readlines()]
+# Read files
+xCOMMatrix = [x.split() for x in open(xCOMFilename).readlines()]
+totalMassMatrix = [x.split() for x in open(totalMassFilename).readlines()]
+betaMatrix = [x.split() for x in open(betaFilename).readlines()]
+betaIdealMatrix = [x.split() for x in open(betaIdealFilename).readlines()]
 
-m1 = [float(item[0]) for item in betaVectors]
-xm1 = [float(item[1]) for item in betaVectors]
-ym1 = [float(item[2]) for item in betaVectors]
-zm1 = [float(item[3]) for item in betaVectors]
+# Parse columns
+xCOM = [[float(item) for item in itemList] for itemList in xCOMMatrix]
+xCOM = np.array(xCOM)
+xCOMReal = xCOM[:, 0]
+# Make xCOMReal a column vector
+xCOMReal = xCOMReal[:, np.newaxis]
+#xCOM = np.absolute(xCOM)
+xCOM = np.delete(xCOM, 0, axis=1)
 
-m2 = [float(item[4]) for item in betaVectors]
-m3 = [float(item[8]) for item in betaVectors]
+# The number of x data points
+x = list(range(1, len(xCOM) + 1))
 
-m4 = [float(item[12]) for item in betaVectors]
-xm4 = [float(item[13]) for item in betaVectors]
-ym4 = [float(item[14]) for item in betaVectors]
-zm4 = [float(item[15]) for item in betaVectors]
+totalMass = [[float(item) for item in itemList] for itemList in totalMassMatrix]
+totalMass = np.array(totalMass)
 
-m5 = [float(item[16]) for item in betaVectors]
-xm5 = [float(item[17]) for item in betaVectors]
-ym5 = [float(item[18]) for item in betaVectors]
-zm5 = [float(item[19]) for item in betaVectors]
+beta = [[float(item) for item in itemList] for itemList in betaMatrix]
+beta = np.array(beta)
 
-m6 = [float(item[20]) for item in betaVectors]
+betaIdeal = [[float(item) for item in itemList] for itemList in betaIdealMatrix]
+betaIdeal = np.array(betaIdeal)
 
-m7 = [float(item[24]) for item in betaVectors]
-xm7 = [float(item[25]) for item in betaVectors]
-ym7 = [float(item[26]) for item in betaVectors]
-zm7 = [float(item[27]) for item in betaVectors]
+# Plot xCOM Avg +/- std and Real
 
-m8 = [float(item[28]) for item in betaVectors]
-m9 = [float(item[32]) for item in betaVectors]
-m10 = [float(item[36]) for item in betaVectors]
-m11 = [float(item[40]) for item in betaVectors]
-m12 = [float(item[44]) for item in betaVectors]
+xCOMAvg = [np.mean(item, axis=0) for item in xCOM];
+std = [np.std(item, axis=0) for item in xCOM];
+xCOMAvgPStd = np.add(xCOMAvg, std);
+xCOMAvgMStd = np.subtract(xCOMAvg, std);
 
-m13 = [float(item[48]) for item in betaVectors]
-xm13 = [float(item[49]) for item in betaVectors]
-ym13 = [float(item[50]) for item in betaVectors]
-zm13 = [float(item[51]) for item in betaVectors]
-
-m14 = [float(item[52]) for item in betaVectors]
-m15 = [float(item[56]) for item in betaVectors]
-m16 = [float(item[60]) for item in betaVectors]
-m17 = [float(item[64]) for item in betaVectors]
-m18= [float(item[68]) for item in betaVectors]
-m19 = [float(item[72]) for item in betaVectors]
-m20 = [float(item[76]) for item in betaVectors]
-m21 = [float(item[80]) for item in betaVectors]
-m22 = [float(item[84]) for item in betaVectors]
-m23 = [float(item[88]) for item in betaVectors]
-m24 = [float(item[92]) for item in betaVectors]
-
-# Read xCOM
-with open(xCOMfilename) as xCOMF:
-    xCOMData = xCOMF.read()
-
-xCOMData = xCOMData.split('\n')
-
-xCOM = [row.split(' ')[0] for row in xCOMData]
-x = list(range(1, len(xCOM)))
-
-xCOM.pop()
-xCOM = [float(i) for i in xCOM]
-
-# Read total mass
-with open(totalmassfilename) as totalMassF:
-    totalMassData = totalMassF.read()
-
-totalMassData = totalMassData.split('\n')
-
-totalMass = [row.split(' ')[0] for row in totalMassData]
-x = list(range(1, len(totalMass)))
-
-totalMass.pop()
-totalMass = [float(i) for i in totalMass]
-
-# Plot xCOM
 figxCOM = plt.figure()
-figxCOM.suptitle("X_CoM")
+figxCOM.suptitle("X_CoM for Many Betas during Learning")
 
 axxCOM = figxCOM.add_subplot(111)
-axxCOM.plot(x,xCOM)
-axxCOM.plot(x,[0]*len(x))
+axxCOM.plot(x, xCOMAvgPStd, label='Avg+1*std')
+axxCOM.plot(x, xCOMAvgMStd, label='Avg-1*std')
+axxCOM.plot(x, xCOMAvg, label='Avg')
+#TODO: Need to change from zero to real values
+axxCOM.scatter(x, [0]*len(x), label='Real', s=1)
+
+axxCOM.plot(x, [0.002]*len(x), label='2milli')
+axxCOM.plot(x, [-0.002]*len(x), label='-2milli')
 
 axxCOM.set_xlabel('Number of Poses')
 axxCOM.set_ylabel('X_CoM')
+axxCOM.legend();
 
-# Plot total mass
-figMass = plt.figure()
-figMass.suptitle("Total Mass")
+# Plot xCOMDiff Avg +/- std and Zero
+xCOMDiff = xCOM - xCOMReal
+xCOMDiff = np.absolute(xCOMDiff)
 
-axMass = figMass.add_subplot(111)
-axMass.plot(x,totalMass)
-axMass.plot(x,[162.863]*len(x))
+xCOMAvgDiff = [np.mean(item, axis=0) for item in xCOMDiff];
+stdDiff = [np.std(item, axis=0) for item in xCOMDiff];
+xCOMAvgDiffPStd = np.add(xCOMAvgDiff, stdDiff);
+xCOMAvgDiffMStd = np.subtract(xCOMAvgDiff, stdDiff);
 
-axMass.set_xlabel('Number of Poses')
-axMass.set_ylabel('Total Mass')
+figxCOMDiff = plt.figure()
+figxCOMDiff.suptitle("X_CoM Differences for Many Betas during Learning")
 
-# Plot parameters
-fig1 = plt.figure()
-fig1.suptitle("Base")
-ax11 = fig1.add_subplot(221)
-ax12 = fig1.add_subplot(222)
-ax13 = fig1.add_subplot(223)
-ax14 = fig1.add_subplot(224)
+axxCOMDiff = figxCOMDiff.add_subplot(111)
+axxCOMDiff.plot(x, xCOMAvgDiffPStd, label='Avg+1*std')
+axxCOMDiff.plot(x, xCOMAvgDiffMStd, label='Avg-1*std')
+axxCOMDiff.plot(x, xCOMAvgDiff, label='Avg')
+axxCOMDiff.plot(x, [0]*len(x), label='Zero')
+axxCOMDiff.plot(x, [0.002]*len(x), label='2milli')
+axxCOMDiff.plot(x, [-0.002]*len(x), label='-2milli')
 
-ax11.plot(x,m1)
-ax11.plot(x,[75.767]*len(x))
-ax12.plot(x,xm1)
-ax12.plot(x,[-0.0475817]*len(x))
-ax13.plot(x,ym1)
-ax13.plot(x,[0.146988]*len(x))
-ax14.plot(x,zm1)
-ax14.plot(x,[5.81292]*len(x))
+axxCOMDiff.set_xlabel('Number of Poses')
+axxCOMDiff.set_ylabel('X_CoM Diff')
+axxCOMDiff.legend();
 
-fig4 = plt.figure()
-fig4.suptitle("Spine")
-ax41 = fig4.add_subplot(221)
-ax42 = fig4.add_subplot(222)
-ax43 = fig4.add_subplot(223)
-ax44 = fig4.add_subplot(224)
+# Plot totalMass Avg +/- std and Zero
+tmAvg = [np.mean(item, axis=0) for item in totalMass];
+std = [np.std(item, axis=0) for item in totalMass];
+tmAvgPStd = np.add(tmAvg, std);
+tmAvgMStd = np.subtract(tmAvg, std);
 
-ax41.plot(x,m4)
-ax41.plot(x,[14.006]*len(x))
-ax42.plot(x,xm4)
-ax42.plot(x,[-0.717415]*len(x))
-ax43.plot(x,ym4)
-ax43.plot(x,[0.00483207]*len(x))
-ax44.plot(x,zm4)
-ax44.plot(x,[1.12785]*len(x))
+figtm = plt.figure()
+figtm.suptitle("Total Mass for Many Betas during Learning")
 
-fig5 = plt.figure()
-fig5.suptitle("Bracket")
-ax51 = fig5.add_subplot(221)
-ax52 = fig5.add_subplot(222)
-ax53 = fig5.add_subplot(223)
-ax54 = fig5.add_subplot(224)
+axtm = figtm.add_subplot(111)
+axtm.plot(x, tmAvgPStd, label='Avg+1*std')
+axtm.plot(x, tmAvgMStd, label='Avg-1*std')
+axtm.plot(x, tmAvg, label='Avg')
+# TODO hardcoded
+axtm.plot(x, [162.863]*len(x), label='Actual')
 
-ax51.plot(x,m5)
-ax51.plot(x,[6.533]*len(x))
-ax52.plot(x,xm5)
-ax52.plot(x,[0]*len(x))
-ax53.plot(x,ym5)
-ax53.plot(x,[0.499415]*len(x))
-ax54.plot(x,zm5)
-ax54.plot(x,[-0.0390151]*len(x))
+axtm.set_xlabel('Number of Poses')
+axtm.set_ylabel('Total Mass')
+axtm.legend();
 
-fig7 = plt.figure()
-fig7.suptitle("L1")
-ax71 = fig7.add_subplot(221)
-ax72 = fig7.add_subplot(222)
-ax73 = fig7.add_subplot(223)
-ax74 = fig7.add_subplot(224)
+numBetasForPose = xCOM.shape[1]
+numBetaParams = beta.shape[1]
 
-ax71.plot(x,m7)
-ax71.plot(x,[7.35]*len(x))
-ax72.plot(x,xm7)
-ax72.plot(x,[0.159495]*len(x))
-ax73.plot(x,ym7)
-ax73.plot(x,[-0.507885]*len(x))
-ax74.plot(x,zm7)
-ax74.plot(x,[0]*len(x))
+beta = beta.reshape(len(xCOM), numBetasForPose, numBetaParams)
+betaAvg = np.mean(beta, axis=1)
+betaStd = np.std(beta, axis=1)
+betaAvgPStd = np.add(betaAvg, betaStd);
+betaAvgMStd = np.subtract(betaAvg, betaStd);
 
-fig13 = plt.figure()
-fig13.suptitle("lGripper")
-ax131 = fig13.add_subplot(221)
-ax132 = fig13.add_subplot(222)
-ax133 = fig13.add_subplot(223)
-ax134 = fig13.add_subplot(224)
+dotsize = 10
+#for i in range(0, int(numBetaParams/4)):
+# TODO set a hard limit
+for i in range(0, 4):
+    # TODO Maybe read these values from a list (the body names)
+    fig = plt.figure()
+    fig.suptitle("Body " + str(i + 1))
+    for j in range(0, 4):
+        ax = fig.add_subplot(220 + j + 1)
+        betaBodyAvg = betaAvg[:, i * 4 + j]
+        betaBodyStd = betaStd[:, i * 4 + j]
+        betaBodyAvgPStd = betaAvgPStd[:, i * 4 + j]
+        betaBodyAvgMStd = betaAvgMStd[:, i * 4 + j]
 
-ax131.plot(x,m13)
-ax131.plot(x,[2.3838]*len(x))
-ax132.plot(x,xm13)
-ax132.plot(x,[0]*len(x))
-ax133.plot(x,ym13)
-ax133.plot(x,[0]*len(x))
-ax134.plot(x,zm13)
-ax134.plot(x,[0.251491]*len(x))
+        ax.plot(x, betaBodyAvgPStd, label='Avg+1*std')
+        ax.plot(x, betaBodyAvgMStd, label='Avg-1*std')
+        ax.plot(x, betaBodyAvg, label='Avg')
+        ax.plot(x, [betaIdeal[0][i * 4 + j]]*len(x), label='Real')
 
+        ax.set_xlabel('Number of Poses')
+        if (j == 0):
+            ax.set_ylabel('Mass (?)')
+        if (j == 1):
+            ax.set_ylabel('x_com(?)')
+        if (j == 2):
+            ax.set_ylabel('y_com(?)')
+        if (j == 3):
+            ax.set_ylabel('z_com(?)')
 
-#ax1.plot(x, y, c='r', label='Error')
-
-#leg = ax1.legend()
-#ax1.yaxis.set_major_locator(loc)
 plt.show()

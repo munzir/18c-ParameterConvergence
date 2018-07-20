@@ -42,16 +42,22 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
 int main() {
     // INPUT on below line (input poses filename)
     string inputPosesFilename = "../random6003fullbalance0.001000tolsafe.txt";
+    //string inputPosesFilename = "../rand";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
 
     // INPUT on below line (input beta vector file)
     //string inputBetaFilename = "../betaVectorsrandom6003fullbalance0.001000tolsafe.txt";
-    string inputBetaFilename = "../betaVectorsfilteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
+    //string inputBetaFilename = "../betaVectorsfilteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
+    //string inputBetaFilename = "../betaVectorsfilteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
+    string inputBetaFilename = "../betaVectorsOnly500.txt";
 
     // INPUT on below line (test with ideal beta)
     bool testIdeal = false;
+
+    // INPUT on below line (how many betas are converging)
+    int numBetas = 500;
 
     // INPUT on below line (parameters for each body)
     int bodyParams = 4;
@@ -74,12 +80,10 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
-
     try {
         cout << "Reading converged beta ...\n";
         Eigen::MatrixXd betaVectors = readInputFileAsMatrix(inputBetaFilename);
-        beta = betaVectors.row(betaVectors.rows() - 1);
+        beta = betaVectors.block(betaVectors.rows() - numBetas, 0, numBetas, betaVectors.cols());
         cout << "|-> Done\n";
     } catch (exception& e) {
         cout << e.what() << endl;
@@ -88,9 +92,11 @@ int main() {
 
     if (testIdeal) {
         cout << "Generating ideal beta vector ...\n";
-        Eigen::MatrixXd beta = readIdealBeta(bodyParams, fullRobotPath);
+        beta = readIdealBeta(bodyParams, fullRobotPath);
         cout << "|-> Done\n";
     }
+
+    Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
 
     cout << "Testing Beta ...\n";
     Eigen::MatrixXd testXCOMValues = testBeta(beta, phiMatrix, inputPoses, bodyParams, fullRobotPath);
@@ -124,8 +130,8 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen:
     SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
     Eigen::MatrixXd phiVec;
-    Eigen::MatrixXd xCOMPred(numInputPoses,1);
-    Eigen::MatrixXd xCOMReal(numInputPoses,1);
+    Eigen::MatrixXd xCOMPred(numInputPoses, beta.rows());
+    Eigen::MatrixXd xCOMReal(numInputPoses, 1);
 
     SkeletonPtr currRobot = idealRobot->clone();
     //currRobot = setParameters(currRobot, beta, bodyParams);
@@ -135,15 +141,14 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen:
         phiVec = phiMatrix.row(pose);
 
         // Add the xCOM to the matrix
-        xCOMPred(pose, 0) = (phiVec * beta.transpose())(0, 0);
+        xCOMPred.row(pose) = phiVec * beta.transpose();
         currRobot->setPositions(inputPoses.row(pose));
         xCOMReal(pose, 0) = currRobot->getCOM()(0);
 
     }
 
-    Eigen::MatrixXd allXCOM(xCOMReal.rows(), xCOMReal.cols()*3);
-    Eigen::MatrixXd xCOMDiff = xCOMReal - xCOMPred;
-    allXCOM << xCOMReal, xCOMPred, xCOMDiff;
+    Eigen::MatrixXd allXCOM(xCOMReal.rows(), xCOMPred.cols() + 1);
+    allXCOM << xCOMReal, xCOMPred;
 
     return allXCOM;
 }

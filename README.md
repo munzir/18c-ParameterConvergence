@@ -4,8 +4,8 @@ This project attempts to converge to a set of parameters i.e. beta (mass & CoM f
 ## train\_beta.cpp
 Converges to a set of parameters for the robot and outputs:
 - phi matrix
-- parameter vectors (beta) every update
-- x center of mass estimation as it updates
+- parameter vectors (for each initial beta) every update
+- x center of mass estimation for each initial beta as it updates
 - filtered poses (the poses actually used to learn)
 
 ### Dependencies
@@ -27,7 +27,7 @@ Converges to a set of parameters for the robot and outputs:
 
 ## filter\_training\_set.cpp
 Same procedure and output as train\_beta, but selectively filters the best poses to train
-on.
+on. Includes a convergence condition as well.
 
 ### Dependencies
 Same as train\_beta
@@ -36,10 +36,9 @@ Same as train\_beta
 Same as train\_beta
 
 ## test\_beta.cpp
-Tests a beta value with the ideal beta value comparing the xcom values outputting:
-- xcom due to ideal beta
-- xcom due to converge beta
-- xcom difference
+Tests beta values with the ideal beta value comparing the xcom values outputting:
+- xcom for the ideal beta
+- xcom for each converged beta
 
 ### Dependencies
 Same as train\_beta
@@ -48,14 +47,17 @@ Same as train\_beta
 Same as train\_beta
 
 ## graph\_beta\_values.py
-A script that graphs the generated beta values compared to the ideal values
-Takes in the output files from `converge_beta` in the following order.
+A script that graphs the average and average +/- standard deviation based on the beta values as well as the real values based on the ideal beta. It also graphs the average and average +/- standard deviation of the differences of the xcom values.
+Takes in the output files from `train_beta` in the following order.
+\*Note: the ideal beta value file is not outputted by `train_beta`
 
 1: xcom file
 
 2: total mass file
 
 3: beta values file
+
+4. ideal beta values file
 
 ### Dependencies
 - Numpy [Numpy Installation](https://www.scipy.org/scipylib/download.html)
@@ -65,15 +67,15 @@ Takes in the output files from `converge_beta` in the following order.
 ### Run
 1: Run the script
 
-    python3 <Path of graph_beta_values> <Path of xcom file> <Path of total mass file> <Path of beta file>
+    python3 <Path of graph_beta_values> <Path of xcom file> <Path of total mass file> <Path of beta file> <Path of ideal beta file>
 
 e.g.
 
-    python3 ../../../data_analysis/graph_beta_values.py xCOMValues.txt totalMassValues.txt betaVectors.txt &
+    python3 ../../../data_analysis/graph_beta_values.py xCOMValues.txt totalMassValues.txt betaVectors.txt idealBetaVector.txt &
 
 ## graph\_xcom\_values.py
-A script that graphs the generated xcom values compared ideal xcom values.
-Takes in xcom file with format of [ideal xcom | predicted xcom | xcom difference].
+A script that graphs the average and average +/- standard deviation xcom values based on the beta values as well as the real values based on the ideal beta. It also graphs the average and average +/- standard deviation of the differences for all the xcom values compared to the ideal xcom value.
+Takes in xcom file with format of [ideal xcom | predicted xcom].
 Same as outputted by test\_beta
 
 ### Dependencies
