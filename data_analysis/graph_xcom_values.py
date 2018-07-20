@@ -5,43 +5,75 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import sys
 
-# xCOM file format : xCOMReal, xCOMPred, xCOMDiff
+# xCOM file format : xCOMMatrix {Row: Iteration, Col: xCOM for each Beta
 xCOMFilename = sys.argv[1]
 
 # Read xCOM file
 xCOMMatrix = [x.split() for x in open(xCOMFilename).readlines()]
 
-# Parse columns
-xCOMReal = [float(item[0]) for item in xCOMMatrix]
-xCOMPred = [float(item[1]) for item in xCOMMatrix]
-xCOMDiff = [float(item[2]) for item in xCOMMatrix]
+xCOM = [[float(item) for item in itemList] for itemList in xCOMMatrix]
+xCOM = np.array(xCOM)
+xCOMReal = xCOM[:, 0]
+# Make xCOMReal a column vector
+xCOMReal = xCOMReal[:, np.newaxis]
+#xCOM = np.absolute(xCOM)
+xCOM = np.delete(xCOM, 0, axis=1)
 
-x = list(range(1, len(xCOMReal) + 1))
+x = list(range(1, len(xCOM) + 1))
 
-# Plot xCOMReal and xCOM Pred
-figxCOMRP = plt.figure()
-figxCOMRP.suptitle("X_CoM Real & Pred")
+xCOMAvg = [np.mean(item, axis=0) for item in xCOM];
+std = [np.std(item, axis=0) for item in xCOM];
+xCOMAvgPStd = np.add(xCOMAvg, std);
+xCOMAvgMStd = np.subtract(xCOMAvg, std);
 
-axxCOMRP = figxCOMRP.add_subplot(111)
-axxCOMRP.scatter(x, xCOMPred, label='Pred', s=2)
-axxCOMRP.scatter(x, xCOMReal, label='Real', s=2)
+xCOMAvgP2Std = np.add(xCOMAvgPStd, std);
+xCOMAvgM2Std = np.subtract(xCOMAvgMStd, std);
 
-axxCOMRP.set_xlabel('Number of Poses')
-axxCOMRP.set_ylabel('X_CoM')
+# Plot xCOM Avg +/- std and Real
+fig = plt.figure()
+fig.suptitle("X_CoM Values for Many Betas during Testing")
 
-axxCOMRP.legend();
+ax = fig.add_subplot(111)
+dotsize = 10
+ax.scatter(x, xCOMAvgPStd, label='Avg+1*std', s=dotsize)
+ax.scatter(x, xCOMAvgMStd, label='Avg-1*std', s=dotsize)
+ax.scatter(x, xCOMAvg, label='Avg', s=dotsize)
+ax.scatter(x, xCOMReal, label='Real', s=dotsize)
+ax.plot(x, [0.002]*len(x), label='2milli')
+ax.plot(x, [-0.002]*len(x), label='-2milli')
+#ax.scatter(x, xCOMAvgP2Std, label='Avg+2*std', s=dotsize)
+#ax.scatter(x, xCOMAvgM2Std, label='Avg-2*std', s=dotsize)
 
-# Plot xCOMDiff
-figxCOMDiff = plt.figure()
-figxCOMDiff.suptitle("X_CoM (Real - Pred)")
+ax.set_xlabel('Number of Poses')
+ax.set_ylabel('X_CoM')
+ax.legend();
 
-axxCOMDiff = figxCOMDiff.add_subplot(111)
-axxCOMDiff.scatter(x,xCOMDiff, label='Diff', s=2)
-axxCOMDiff.scatter(x,[0]*len(x), label='Zero', s=2)
+# Plot xCOM Diff Avg +/- std
+xCOMDiff = xCOM - xCOMReal
+xCOMDiff = np.absolute(xCOMDiff)
+xCOMAvgDiff = [np.mean(item, axis=0) for item in xCOMDiff];
+stdDiff = [np.std(item, axis=0) for item in xCOMDiff];
+xCOMAvgDiffPStd = np.add(xCOMAvgDiff, stdDiff);
+xCOMAvgDiffMStd = np.subtract(xCOMAvgDiff, stdDiff);
 
-axxCOMDiff.set_xlabel('Number of Poses')
-axxCOMDiff.set_ylabel('X_CoM Diff')
+totalAvgDiff = np.mean(xCOMAvgDiff)
+print(totalAvgDiff)
 
-axxCOMDiff.legend();
+figDiff = plt.figure()
+figDiff.suptitle("X_CoM Differences for Many Betas during Testing")
 
+axDiff = figDiff.add_subplot(111)
+dotsize = 10
+axDiff.scatter(x, xCOMAvgDiffPStd, label='AvgDiff+1*std', s=dotsize)
+axDiff.scatter(x, xCOMAvgDiffMStd, label='AvgDiff-1*std', s=dotsize)
+axDiff.scatter(x, xCOMAvgDiff, label='AvgDiff', s=dotsize)
+axDiff.scatter(x, [0]*len(x), label='Zero', s=1)
+axDiff.plot(x, [0.002]*len(x), label='2milli')
+axDiff.plot(x, [-0.002]*len(x), label='-2milli')
+axDiff.plot(x, [totalAvgDiff]*len(x), label='Total Avg Diff')
+
+axDiff.set_xlabel('Number of Poses')
+axDiff.set_ylabel('X_CoM Diff')
+
+axDiff.legend();
 plt.show()

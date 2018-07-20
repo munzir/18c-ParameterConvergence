@@ -12,7 +12,6 @@
 /data_analysis/*
 !/data_analysis/graph_beta_values.py
 !/data_analysis/graph_xcom_values.py
-!/data_analysis/graph_many_xcom_values.py
 
 # Parameter Convergence Scripts
 !/param_converge/
@@ -32,35 +31,17 @@
 !/param_converge/train_beta/train_beta.cpp
 !/param_converge/train_beta/CMakeLists.txt
 
-# train_many_beta
-!/param_converge/train_many_beta/
-/param_converge/train_many_beta/*
-!/param_converge/train_many_beta/train_beta.cpp
-!/param_converge/train_many_beta/CMakeLists.txt
-
 # filter_training_set
 !/param_converge/filter_training_set/
 /param_converge/filter_training_set/*
 !/param_converge/filter_training_set/filter_training_set.cpp
 !/param_converge/filter_training_set/CMakeLists.txt
 
-# filter_converge_train
-!/param_converge/filter_converge_train/
-/param_converge/filter_converge_train/*
-!/param_converge/filter_converge_train/filter_converge_train.cpp
-!/param_converge/filter_converge_train/CMakeLists.txt
-
 # test_beta
 !/param_converge/test_beta/
 /param_converge/test_beta/*
 !/param_converge/test_beta/test_beta.cpp
 !/param_converge/test_beta/CMakeLists.txt
-
-# test_beta
-!/param_converge/test_many_beta/
-/param_converge/test_many_beta/*
-!/param_converge/test_many_beta/test_beta.cpp
-!/param_converge/test_many_beta/CMakeLists.txt
 
 # Datasets
 #!/param_converge/filter_training_set/?.txt
