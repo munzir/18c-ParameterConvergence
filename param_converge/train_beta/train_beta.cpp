@@ -51,14 +51,14 @@ int main() {
     // INPUT on below line (Random Seed)
     //double startTime = time(0);
     //srand(startTime);
-    //srand(0);
+    srand(0);
 
     // INPUT on below line (number of random initial betas)
     int numRandomBetas = 500;
 
     // INPUT on below line (input poses filename)
-    string inputPosesFilename = "../filteredPoses500initialBetarandom22106fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
-    //string inputPosesFilename = "../orderedfinalSet.txt";
+    //string inputPosesFilename = "../filteredPoses500initialBetarandom22106fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
+    string inputPosesFilename = "../finalSetDart.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
