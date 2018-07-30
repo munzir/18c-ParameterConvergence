@@ -30,6 +30,7 @@
 /param_converge/train_beta/*
 !/param_converge/train_beta/train_beta.cpp
 !/param_converge/train_beta/CMakeLists.txt
+!/param_converge/train_beta/idealBetaVector.txt
 
 # filter_training_set
 !/param_converge/filter_training_set/
