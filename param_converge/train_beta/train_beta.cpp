@@ -59,6 +59,8 @@ int main() {
     // INPUT on below line (input poses filename)
     //string inputPosesFilename = "../filteredPoses500initialBetarandom22106fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
     string inputPosesFilename = "../finalSetDart.txt";
+    // TODO
+    //string inputPosesFilename = "../hardwareData.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
@@ -67,7 +69,7 @@ int main() {
     int bodyParams = 4;
 
     // INPUT on below line (absolute robot path)
-    string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
+    string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/KrangNoKinect.urdf";
 
     // INPUT on below lines (need to create a prior beta value)
     double minXCOMError = 0.02;
@@ -100,7 +102,8 @@ int main() {
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
 
-    // TODO: Maybe add the greatest xcom to check for initial error?
+    // TODO: Maybe add the greatest xcom to check for initial error? instead of
+    // basing it off the first one
     Eigen::MatrixXd initialPosePhiVec = phiMatrix.row(0);
     Eigen::MatrixXd priorBetas = createPriorBeta(fullRobotPath, bodyParams, minXCOMError, maxDeviation, maxOffset, initialPosePhiVec, numRandomBetas);
 
