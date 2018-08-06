@@ -118,7 +118,7 @@ betaAvgMStd = np.subtract(betaAvg, betaStd);
 dotsize = 10
 #for i in range(0, int(numBetaParams/4)):
 # TODO set a hard limit
-for i in range(0, 4):
+for i in range(0, 6):
     # TODO Maybe read these values from a list (the body names)
     fig = plt.figure()
     fig.suptitle("Body " + str(i + 1))
