@@ -41,8 +41,9 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (input poses filename)
-    string inputPosesFilename = "../random6003fullbalance0.001000tolsafe.txt";
+    //string inputPosesFilename = "../random6003fullbalance0.001000tolsafe.txt";
     //string inputPosesFilename = "../rand";
+    string inputPosesFilename = "../hardwaretest-balanced-posesmunzirdart.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
@@ -51,13 +52,15 @@ int main() {
     //string inputBetaFilename = "../betaVectorsrandom6003fullbalance0.001000tolsafe.txt";
     //string inputBetaFilename = "../betaVectorsfilteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
     //string inputBetaFilename = "../betaVectorsfilteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
-    string inputBetaFilename = "../betaVectorsOnly500.txt";
+    //string inputBetaFilename = "../betaVectorsOnly500.txt";
+    string inputBetaFilename = "../betaVectors1initialBetahardwaretrain-balanced-posesmunzirdart.txt";
 
     // INPUT on below line (test with ideal beta)
-    bool testIdeal = false;
+    bool testIdeal = true;
 
     // INPUT on below line (how many betas are converging)
-    int numBetas = 500;
+    //int numBetas = 500;
+    int numBetas = 1;
 
     // INPUT on below line (parameters for each body)
     int bodyParams = 4;
