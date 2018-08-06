@@ -66,7 +66,7 @@ int main() {
     int bodyParams = 4;
 
     // INPUT on below line (absolute robot path)
-    string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
+    string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/KrangNoKinect.urdf";
 
     // INPUT on below line (number of random initial betas)
     int numRandomBetas = 500;
@@ -344,7 +344,7 @@ Eigen::MatrixXd createPriorBeta(string fullRobotPath, int bodyParams, double min
         // Reset priorBeta and xCOM
         Eigen::MatrixXd priorBeta(1, numBodies*bodyParams);
         xCOM = 0;
-        while (abs(xCOM) < minXCOMError) {
+        while (abs(xCOM) <= minXCOMError) {
             for (int i = 0; i < numBodies; i++) {
                 bodyi = robot->getBodyNode(i);
                 mi = bodyi->getMass();
