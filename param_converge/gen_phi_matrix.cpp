@@ -14,6 +14,8 @@
 #include <fstream>
 #include "gen_phi_matrix.hpp"
 
+#include "../../18h-Util/convert_pose_formats.hpp"
+
 // Namespaces
 using namespace std;
 using namespace dart::common;
@@ -98,7 +100,8 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
     for (int pose = 0; pose < numInputPoses; pose++) {
 
         // Set position of ideal robot to the pose in DART format
-        idealRobot->setPositions(inputPoses.row(pose));
+        //idealRobot->setPositions(inputPoses.row(pose));
+        idealRobot->setPositions(munzirToDart(inputPoses.row(pose)));
 
         // Get x center of mass
         xMCOMIdealRobot = idealRobot->getMass()*idealRobot->getCOM()(0);
@@ -108,8 +111,10 @@ Eigen::MatrixXd genPhiMatrix(Eigen::MatrixXd inputPoses, int bodyParams, string 
             for(int i=0; i<bodyParams; i++){
 
                 // Set perturbed robot position to pose
-                forwPertRobotArray[b*bodyParams + i]->setPositions(inputPoses.row(pose));
-                backPertRobotArray[b*bodyParams + i]->setPositions(inputPoses.row(pose));
+                //forwPertRobotArray[b*bodyParams + i]->setPositions(inputPoses.row(pose));
+                forwPertRobotArray[b*bodyParams + i]->setPositions(munzirToDart(inputPoses.row(pose)));
+                //backPertRobotArray[b*bodyParams + i]->setPositions(inputPoses.row(pose));
+                backPertRobotArray[b*bodyParams + i]->setPositions(munzirToDart(inputPoses.row(pose)));
 
                 // Get the center of mass of the perturbedRobot
                 xMCOMForwPertRobot = forwPertRobotArray[b*bodyParams + i]->getMass()*forwPertRobotArray[b*bodyParams + i]->getCOM()(0);

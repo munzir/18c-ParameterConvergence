@@ -19,7 +19,9 @@
 #include <fstream>
 
 #include "../gen_phi_matrix.hpp"
-#include "../file_ops.hpp"
+
+#include "../../../18h-Util/convert_pose_formats.hpp"
+#include "../../../18h-Util/file_ops.hpp"
 
 // Namespaces
 using namespace std;
@@ -43,7 +45,7 @@ int main() {
     // INPUT on below line (input poses filename)
     //string inputPosesFilename = "../random6003fullbalance0.001000tolsafe.txt";
     //string inputPosesFilename = "../rand";
-    string inputPosesFilename = "../hardwaretest-balanced-posesmunzirdart.txt";
+    string inputPosesFilename = "../hardware-balanced-posesmunzir.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
@@ -53,10 +55,13 @@ int main() {
     //string inputBetaFilename = "../betaVectorsfilteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
     //string inputBetaFilename = "../betaVectorsfilteredPosesrandom6003fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
     //string inputBetaFilename = "../betaVectorsOnly500.txt";
-    string inputBetaFilename = "../betaVectors1initialBetahardwaretrain-balanced-posesmunzirdart.txt";
+    //string inputBetaFilename = "../betaVectors1initialBetahardwaretrain-balanced-posesmunzirdart.txt";
+    //string inputBetaFilename = "../betaVectors1initialBetahardware-balanced-posesmunzir.txt";
+    string inputBetaFilename = "../betaVectors1initialBetahardware-balanced-posesmunzir2.000000*10e-3filter.txt";
 
     // INPUT on below line (test with ideal beta)
-    bool testIdeal = true;
+    //bool testIdeal = true;
+    bool testIdeal = false;
 
     // INPUT on below line (how many betas are converging)
     //int numBetas = 500;
@@ -145,7 +150,8 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen:
 
         // Add the xCOM to the matrix
         xCOMPred.row(pose) = phiVec * beta.transpose();
-        currRobot->setPositions(inputPoses.row(pose));
+        //currRobot->setPositions(inputPoses.row(pose));
+        currRobot->setPositions(munzirToDart(inputPoses.row(pose).transpose()));
         xCOMReal(pose, 0) = currRobot->getCOM()(0);
 
     }

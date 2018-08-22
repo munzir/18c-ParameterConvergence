@@ -17,7 +17,10 @@
 #include <fstream>
 
 #include "../gen_phi_matrix.hpp"
-#include "../file_ops.hpp"
+
+#include "../../../18h-Util/convert_pose_formats.hpp"
+#include "../../../18h-Util/file_ops.hpp"
+#include "../../../18h-Util/random.hpp"
 
 // Namespaces
 using namespace std;
@@ -43,9 +46,6 @@ Eigen::MatrixXd createPriorBeta(string fullRobotPath, int bodyParams, double min
 // // Change robot's beta values (parameters)
 SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd beta, int bodyParams);
 
-// // Random Value
-double fRand(double fMin, double fMax);
-
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (Random Seed)
@@ -60,7 +60,8 @@ int main() {
     //string inputPosesFilename = "../filteredPoses500initialBetarandom22106fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
     //string inputPosesFilename = "../finalSetDart.txt";
     //string inputPosesFilename = "../finalSet.txt";
-    string inputPosesFilename = "../hardwaretrain-balanced-posesmunzirdart.txt";
+    //string inputPosesFilename = "../hardwaretrain-balanced-posesmunzirdart.txt";
+    string inputPosesFilename = "../hardware-balanced-posesmunzir.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
@@ -205,7 +206,9 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
         xCOMVector = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - idealTotalMassVector));
 
         // Append the next xCOM
-        currRobot->setPositions(inputPoses.row(pose));
+        // TODO: Error setting pose
+        //currRobot->setPositions(inputPoses.row(pose));
+        currRobot->setPositions(munzirToDart(inputPoses.row(pose)));
         xCOMVectorWithReal(0, 0) = currRobot->getCOM()(0);
         for (int i = 1; i < xCOMVectorWithReal.cols(); i++) {
             xCOMVectorWithReal(0, i) = xCOMVector(0, i - 1);
@@ -324,10 +327,4 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
         robot->getBodyNode(i)->setLocalCOM(bodyMCOM/mi);
     }
     return robot;
-}
-
-// // Random Value
-double fRand(double fMin, double fMax) {
-    double f = (double)rand() / RAND_MAX;
-    return fMin + f * (fMax - fMin);
 }

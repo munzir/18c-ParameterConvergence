@@ -12,6 +12,8 @@
 /data_analysis/*
 !/data_analysis/graph_beta_values.py
 !/data_analysis/graph_xcom_values.py
+!/data_analysis/graph_beta_values_hardware.py
+!/data_analysis/graph_xcom_values_hardware.py
 
 # Parameter Convergence Scripts
 !/param_converge/
