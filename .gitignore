@@ -23,10 +23,6 @@
 !/param_converge/gen_phi_matrix.hpp
 !/param_converge/gen_phi_matrix.cpp
 
-# file_ops
-!/param_converge/file_ops.hpp
-!/param_converge/file_ops.cpp
-
 # train_beta
 !/param_converge/train_beta/
 /param_converge/train_beta/*
