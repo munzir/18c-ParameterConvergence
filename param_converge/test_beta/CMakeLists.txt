@@ -8,7 +8,10 @@ add_compile_options(-std=c++11)
 
 include_directories(${DART_INCLUDE_DIRS})
 
-file(GLOB srcs "test_beta.cpp" "../gen_phi_matrix.cpp" "../gen_phi_matrix.hpp" "../file_ops.cpp" "../file_ops.hpp")
+file(GLOB srcs "test_beta.cpp" "../gen_phi_matrix.cpp" "../gen_phi_matrix.hpp"
+    "../../../18h-Util/file_ops.cpp" "../../../18h-Util/file_ops.hpp"
+    "../../../18h-Util/convert_pose_formats.cpp"
+    "../../../18h-Util/convert_pose_formats.hpp")
 add_executable(${PROJECT_NAME} ${srcs})
 
 target_link_libraries(${PROJECT_NAME} ${DART_LIBRARIES})

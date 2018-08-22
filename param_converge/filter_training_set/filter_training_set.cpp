@@ -17,7 +17,10 @@
 #include <fstream>
 
 #include "../gen_phi_matrix.hpp"
-#include "../file_ops.hpp"
+
+#include "../../../18h-Util/convert_pose_formats.hpp"
+#include "../../../18h-Util/file_ops.hpp"
+#include "../../../18h-Util/random.hpp"
 
 // Namespaces
 using namespace std;
@@ -47,9 +50,6 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd beta, int bodyParam
 // // Check for convergence
 bool xtolReached(double threshold, Eigen::MatrixXd xCOMAllVectors, int pose, int convergedPoses);
 
-// // Random Value
-double fRand(double fMin, double fMax);
-
 // TODO: Commandline arguments a default values
 int main() {
     // INPUT on below line (Random Seed)
@@ -57,7 +57,8 @@ int main() {
     //srand(0);
 
     // INPUT on below line (input poses filename)
-    string inputPosesFilename = "../random22106fullbalance0.001000tolsafe.txt";
+    //string inputPosesFilename = "../random22106fullbalance0.001000tolsafe.txt";
+    string inputPosesFilename = "../hardware-balanced-posesmunzir.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
@@ -69,12 +70,16 @@ int main() {
     string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/KrangNoKinect.urdf";
 
     // INPUT on below line (number of random initial betas)
-    int numRandomBetas = 500;
+    //int numRandomBetas = 500;
+    int numRandomBetas = 1;
 
     // INPUT on below lines (need to create a prior beta value)
-    double minXCOMError = 0.02;
-    double maxDeviation = 0.50;
-    double maxOffset = 0.50;
+    //double minXCOMError = 0.02;
+    //double maxDeviation = 0.50;
+    //double maxOffset = 0.50;
+    double minXCOMError = 0.00;
+    double maxDeviation = 0.00;
+    double maxOffset = 0.00;
 
     //Best so far with u = 0 n = 300 would need to do comparisons of
     // INPUT on below line (learning rate)
@@ -220,7 +225,7 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
         // greatest learning
         int i = 0;
         while (i < phiMatrix.rows()) {
-            cout << "\rPose: " << pose + 1 << "/" << numInputPoses << " Finding Max: " << i << "/" << phiMatrix.rows() << " \t " << endl;
+            cout << "\rPose: " << pose + 1 << "/" << numInputPoses << " Finding Max: " << i << "/" << phiMatrix.rows() << " \t ";
             phiVec = phiMatrix.row(i);
             xCOMValue = ((phiVec * currBeta.transpose()).cwiseAbs()).sum();
             if (xCOMValue >= maxXCOMValue) {
@@ -229,6 +234,7 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
             }
             i++;
         }
+
         phiVec = phiMatrix.row(maxPose);
 
         // Write this pose
@@ -237,9 +243,10 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
         xCOMVector = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - idealTotalMassVector));
 
         // Append the next xCOM
-        currRobot->setPositions(inputPoses.row(maxPose));
+        //currRobot->setPositions(inputPoses.row(maxPose));
+        currRobot->setPositions(munzirToDart(inputPoses.row(maxPose).transpose()));
         xCOMVectorWithReal(0, 0) = currRobot->getCOM()(0);
-        for (int i = 0; i < xCOMVectorWithReal.cols(); i++) {
+        for (int i = 1; i < xCOMVectorWithReal.cols(); i++) {
             xCOMVectorWithReal(0, i) = xCOMVector(0, i - 1);
         }
         xCOMAllVectors.row(pose) = xCOMVectorWithReal;
@@ -260,7 +267,6 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
         // Plus one to pose because we still have our initial betas
         //betaVectors.block((pose + 1) * numBetas - 1, 0, numBetas, numBetaParams) = currBeta;
         betaVectors.block((pose + 1) * numBetas, 0, numBetas, numBetaParams) = currBeta;
-
 
         // Determine the min value of all the xCOMs of each currBeta
         if (!xtolReached(threshold, xCOMAllVectors, pose, convergedPoses)) {
@@ -297,10 +303,10 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
     // Same with the total mass
     xCOMVector = (phiVec * currBeta.transpose()) + (u * ((massIndicatorMatrix * currBeta.transpose()) - idealTotalMassVector));
     xCOMVectorWithReal(0, 0) = currRobot->getCOM()(0);
-    for (int i = 0; i < xCOMVectorWithReal.cols(); i++) {
+    for (int i = 1; i < xCOMVectorWithReal.cols(); i++) {
         xCOMVectorWithReal(0, i) = xCOMVector(0, i - 1);
     }
-    xCOMAllVectors.row(pose) = xCOMVector;
+    xCOMAllVectors.row(pose) = xCOMVectorWithReal;
     Eigen::MatrixXd xCOMAllVectorsFin = xCOMAllVectors.topRows(pose + 1);
 
     totalMassVector = (massIndicatorMatrix * currBeta.transpose());
@@ -392,7 +398,6 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
 
 // // Check for convergence
 bool xtolReached(double threshold, Eigen::MatrixXd xCOMAllVectors, int pose, int convergedPoses) {
-
     if (pose + 1 < convergedPoses) {
         return false;
     }
@@ -411,11 +416,4 @@ bool xtolReached(double threshold, Eigen::MatrixXd xCOMAllVectors, int pose, int
     }
 
     return true;
-
-}
-
-// // Random Value
-double fRand(double fMin, double fMax) {
-    double f = (double)rand() / RAND_MAX;
-    return fMin + f * (fMax - fMin);
 }
