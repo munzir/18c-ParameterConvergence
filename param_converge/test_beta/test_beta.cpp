@@ -71,7 +71,7 @@ int main() {
     int bodyParams = 4;
 
     // INPUT on below line (absolute robot path)
-    string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/KrangNoKinect.urdf";
+    string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
 
     // INPUT on below line (output filename)
     string outputBaseName = "testxCOMValues";
