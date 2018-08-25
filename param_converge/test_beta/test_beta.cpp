@@ -32,7 +32,7 @@ using namespace dart::utils;
 
 // Function Prototypes
 // // Test Beta
-Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd inputPoses, int bodyParams, string fullRobotPath);
+Eigen::MatrixXd testBeta(Eigen::MatrixXd betaVectors, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd inputPoses, int numBetas, int bodyParams, string fullRobotPath);
 
 // // Read ideal beta params from robot
 Eigen::MatrixXd readIdealBeta(int bodyParams, string fullRobotPath);
@@ -77,7 +77,7 @@ int main() {
     string outputBaseName = "testxCOMValues";
 
     Eigen::MatrixXd inputPoses;
-    Eigen::MatrixXd beta;
+    Eigen::MatrixXd betaVectors;
 
     try {
         cout << "Reading input poses ...\n";
@@ -90,8 +90,7 @@ int main() {
 
     try {
         cout << "Reading converged beta ...\n";
-        Eigen::MatrixXd betaVectors = readInputFileAsMatrix(inputBetaFilename);
-        beta = betaVectors.block(betaVectors.rows() - numBetas, 0, numBetas, betaVectors.cols());
+        betaVectors = readInputFileAsMatrix(inputBetaFilename);
         cout << "|-> Done\n";
     } catch (exception& e) {
         cout << e.what() << endl;
@@ -100,14 +99,14 @@ int main() {
 
     if (testIdeal) {
         cout << "Generating ideal beta vector ...\n";
-        beta = readIdealBeta(bodyParams, fullRobotPath);
+        betaVectors = readIdealBeta(bodyParams, fullRobotPath);
         cout << "|-> Done\n";
     }
 
     Eigen::MatrixXd phiMatrix = genPhiMatrix(inputPoses, bodyParams, fullRobotPath, perturbedValue);
 
     cout << "Testing Beta ...\n";
-    Eigen::MatrixXd testXCOMValues = testBeta(beta, phiMatrix, inputPoses, bodyParams, fullRobotPath);
+    Eigen::MatrixXd testXCOMValues = testBeta(betaVectors, phiMatrix, inputPoses, numBetas, bodyParams, fullRobotPath);
     cout << "|-> Done\n";
 
     // Write test xCOM values to file
@@ -129,7 +128,7 @@ int main() {
 }
 
 // // Test Beta
-Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd inputPoses, int bodyParams, string fullRobotPath) {
+Eigen::MatrixXd testBeta(Eigen::MatrixXd betaVectors, Eigen::MatrixXd phiMatrix, Eigen::MatrixXd inputPoses, int numBetas, int bodyParams, string fullRobotPath) {
     int numInputPoses = phiMatrix.rows();
     int numBetaParams = phiMatrix.cols();
 
@@ -137,23 +136,31 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd beta, Eigen::MatrixXd phiMatrix, Eigen:
     DartLoader loader;
     SkeletonPtr idealRobot = loader.parseSkeleton(fullRobotPath);
 
+    // If just wondering (this is the last value)
+    //Eigen::MatrixXd beta = betaVectors.block(betaVectors.rows() - numBetas, 0, numBetas, betaVectors.cols());
+    Eigen::MatrixXd beta;
     Eigen::MatrixXd phiVec;
-    Eigen::MatrixXd xCOMPred(numInputPoses, beta.rows());
-    Eigen::MatrixXd xCOMReal(numInputPoses, 1);
+    Eigen::MatrixXd xCOMPred(numInputPoses*betaVectors.rows(), numBetas);
+    Eigen::MatrixXd xCOMReal(numInputPoses*betaVectors.rows(), 1);
 
     SkeletonPtr currRobot = idealRobot->clone();
+    // TODO: what to do with negative mass values (for now xCOM Real is not
+    // actually xCOM Real)
     //currRobot = setParameters(currRobot, beta, bodyParams);
 
     // Loop through the phi matrix to test the beta
-    for (int pose = 0; pose < numInputPoses; pose++) {
-        phiVec = phiMatrix.row(pose);
+    for (int betaVectorNum = 0; betaVectorNum < betaVectors.rows(); betaVectorNum += numBetas) {
+        beta = betaVectors.block(betaVectorNum, 0, numBetas, betaVectors.cols());
+        for (int pose = 0; pose < numInputPoses; pose++) {
+            phiVec = phiMatrix.row(pose);
 
-        // Add the xCOM to the matrix
-        xCOMPred.row(pose) = phiVec * beta.transpose();
-        //currRobot->setPositions(inputPoses.row(pose));
-        currRobot->setPositions(munzirToDart(inputPoses.row(pose).transpose()));
-        xCOMReal(pose, 0) = currRobot->getCOM()(0);
+            // Add the xCOM to the matrix
+            xCOMPred.row(betaVectorNum * numInputPoses + pose) = phiVec * beta.transpose();
+            //currRobot->setPositions(inputPoses.row(pose));
+            currRobot->setPositions(munzirToDart(inputPoses.row(pose).transpose()));
+            xCOMReal(betaVectorNum * numInputPoses + pose, 0) = currRobot->getCOM()(0);
 
+        }
     }
 
     Eigen::MatrixXd allXCOM(xCOMReal.rows(), xCOMPred.cols() + 1);
