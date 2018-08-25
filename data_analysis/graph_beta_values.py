@@ -23,8 +23,9 @@ xCOM = np.array(xCOM)
 xCOMReal = xCOM[:, 0]
 # Make xCOMReal a column vector
 xCOMReal = xCOMReal[:, np.newaxis]
-#xCOM = np.absolute(xCOM)
 xCOM = np.delete(xCOM, 0, axis=1)
+xCOMNotAbs = xCOM
+xCOM = np.absolute(xCOM)
 
 # The number of x data points
 x = list(range(1, len(xCOM) + 1))
@@ -38,31 +39,36 @@ beta = np.array(beta)
 betaIdeal = [[float(item) for item in itemList] for itemList in betaIdealMatrix]
 betaIdeal = np.array(betaIdeal)
 
-# Plot xCOM Avg +/- std and Real
+# Plot xCOM Avg +/- std and max and Real
 
 xCOMAvg = [np.mean(item, axis=0) for item in xCOM];
 std = [np.std(item, axis=0) for item in xCOM];
 xCOMAvgPStd = np.add(xCOMAvg, std);
 xCOMAvgMStd = np.subtract(xCOMAvg, std);
+xCOMMax = [np.max(item, axis=0) for item in xCOM];
 
 figxCOM = plt.figure()
 figxCOM.suptitle("X_CoM for Many Betas during Learning")
 
 axxCOM = figxCOM.add_subplot(111)
+axxCOM.plot(x, xCOMMax, label='Max')
 axxCOM.plot(x, xCOMAvgPStd, label='Avg+1*std')
-axxCOM.plot(x, xCOMAvgMStd, label='Avg-1*std')
+#axxCOM.plot(x, xCOMAvgMStd, label='Avg-1*std')
 axxCOM.plot(x, xCOMAvg, label='Avg')
 #TODO: Need to change from zero to real values
+# I mean with the right balancing they are p much zero so its fine
 axxCOM.scatter(x, [0]*len(x), label='Real', s=1)
 
 axxCOM.plot(x, [0.002]*len(x), label='2milli')
-axxCOM.plot(x, [-0.002]*len(x), label='-2milli')
+#axxCOM.plot(x, [-0.002]*len(x), label='-2milli')
 
 axxCOM.set_xlabel('Number of Poses')
 axxCOM.set_ylabel('X_CoM')
 axxCOM.legend();
 
 # Plot xCOMDiff Avg +/- std and Zero
+# make xCOM the unabsolute value stored before for difference calculation
+xCOM = xCOMNotAbs
 xCOMDiff = xCOM - xCOMReal
 xCOMDiff = np.absolute(xCOMDiff)
 
@@ -70,17 +76,19 @@ xCOMAvgDiff = [np.mean(item, axis=0) for item in xCOMDiff];
 stdDiff = [np.std(item, axis=0) for item in xCOMDiff];
 xCOMAvgDiffPStd = np.add(xCOMAvgDiff, stdDiff);
 xCOMAvgDiffMStd = np.subtract(xCOMAvgDiff, stdDiff);
+xCOMMaxDiff = [np.max(item, axis=0) for item in xCOMDiff]
 
 figxCOMDiff = plt.figure()
 figxCOMDiff.suptitle("X_CoM Differences for Many Betas during Learning")
 
 axxCOMDiff = figxCOMDiff.add_subplot(111)
+axxCOMDiff.plot(x, xCOMMaxDiff, label='Max')
 axxCOMDiff.plot(x, xCOMAvgDiffPStd, label='Avg+1*std')
-axxCOMDiff.plot(x, xCOMAvgDiffMStd, label='Avg-1*std')
+#axxCOMDiff.plot(x, xCOMAvgDiffMStd, label='Avg-1*std')
 axxCOMDiff.plot(x, xCOMAvgDiff, label='Avg')
-axxCOMDiff.plot(x, [0]*len(x), label='Zero')
 axxCOMDiff.plot(x, [0.002]*len(x), label='2milli')
-axxCOMDiff.plot(x, [-0.002]*len(x), label='-2milli')
+axxCOMDiff.plot(x, [0]*len(x), label='Zero')
+#axxCOMDiff.plot(x, [-0.002]*len(x), label='-2milli')
 
 axxCOMDiff.set_xlabel('Number of Poses')
 axxCOMDiff.set_ylabel('X_CoM Diff')
@@ -100,7 +108,7 @@ axtm.plot(x, tmAvgPStd, label='Avg+1*std')
 axtm.plot(x, tmAvgMStd, label='Avg-1*std')
 axtm.plot(x, tmAvg, label='Avg')
 # TODO hardcoded
-axtm.plot(x, [162.863]*len(x), label='Actual')
+axtm.plot(x, [162.158]*len(x), label='Actual')
 
 axtm.set_xlabel('Number of Poses')
 axtm.set_ylabel('Total Mass')
@@ -118,7 +126,7 @@ betaAvgMStd = np.subtract(betaAvg, betaStd);
 dotsize = 10
 #for i in range(0, int(numBetaParams/4)):
 # TODO set a hard limit
-for i in range(0, 6):
+for i in range(0, 2):
     # TODO Maybe read these values from a list (the body names)
     fig = plt.figure()
     fig.suptitle("Body " + str(i + 1))
