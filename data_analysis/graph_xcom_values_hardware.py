@@ -5,8 +5,11 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import sys
 
+# INPUTS
+# 47 as for now
+numTestPoses = sys.argv[1]
 # xCOM file format : xCOMMatrix {Row: Iteration, Col: xCOM for each Beta
-xCOMFilename = sys.argv[1]
+xCOMFilename = sys.argv[2]
 
 # Read xCOM file
 xCOMMatrix = [x.split() for x in open(xCOMFilename).readlines()]
