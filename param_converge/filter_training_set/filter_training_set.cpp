@@ -57,8 +57,8 @@ int main() {
     //srand(0);
 
     // INPUT on below line (input poses filename)
-    //string inputPosesFilename = "../random22106fullbalance0.001000tolsafe.txt";
-    string inputPosesFilename = "../hardware-balanced-posesmunzir.txt";
+    string inputPosesFilename = "../random20000anglebalance0.001000tolsafe.txt";
+    //string inputPosesFilename = "../hardware-balanced-posesmunzir.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
@@ -69,17 +69,24 @@ int main() {
     // INPUT on below line (absolute robot path)
     string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
 
+    // INPUT on below line (which prior betas to use)
+    string initialBetaGenMethod = "generateRandomly";
+    // options: readFromFile, generateRandomly
+
+    // INPUT on below line (prior beta value file to read from)
+    string priorBetasFilename = "";
+
     // INPUT on below line (number of random initial betas)
-    //int numRandomBetas = 500;
-    int numRandomBetas = 1;
+    int numRandomBetas = 1000;
+    //int numRandomBetas = 1;
 
     // INPUT on below lines (need to create a prior beta value)
-    //double minXCOMError = 0.02;
-    //double maxDeviation = 0.50;
-    //double maxOffset = 0.50;
-    double minXCOMError = 0.00;
-    double maxDeviation = 0.00;
-    double maxOffset = 0.00;
+    double minXCOMError = 0.02;
+    double maxDeviation = 0.50;
+    double maxOffset = 0.50;
+    //double minXCOMError = 0.00;
+    //double maxDeviation = 0.00;
+    //double maxOffset = 0.00;
 
     //Best so far with u = 0 n = 300 would need to do comparisons of
     // INPUT on below line (learning rate)
@@ -118,7 +125,13 @@ int main() {
 
     // TODO: Maybe add the greatest xcom to check for initial error?
     Eigen::MatrixXd initialPosePhiVec = phiMatrix.row(0);
-    Eigen::MatrixXd priorBetas = createPriorBeta(fullRobotPath, bodyParams, minXCOMError, maxDeviation, maxOffset, initialPosePhiVec, numRandomBetas);
+    Eigen::MatrixXd priorBetas;
+    if (initialBetaGenMethod == "readFromFile") {
+        priorBetas = readInputFileAsMatrix(priorBetasFilename);
+    } else {
+        priorBetas = createPriorBeta(fullRobotPath, bodyParams, minXCOMError, maxDeviation, maxOffset, initialPosePhiVec, numRandomBetas);
+
+    }
 
     cout << "Converging to Beta ...\n";
     trainBetaRetVal retVal = trainBeta(inputName, inputPoses, phiMatrix, priorBetas, bodyParams, fullRobotPath, learningRate, massRegularization, threshold, convergedPoses);
