@@ -48,7 +48,7 @@ Eigen::MatrixXd createPriorBeta(string fullRobotPath, int bodyParams, double min
 SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd beta, int bodyParams);
 
 // // Check for convergence
-bool xtolReached(double threshold, Eigen::MatrixXd xCOMAllVectors, int pose, int convergedPoses);
+double maxXCOM(Eigen::MatrixXd xCOMAllVectors, int pose, int convergedPoses);
 
 // TODO: Commandline arguments a default values
 int main() {
@@ -77,7 +77,7 @@ int main() {
     string priorBetasFilename = "";
 
     // INPUT on below line (number of random initial betas)
-    int numRandomBetas = 1000;
+    int numRandomBetas = 500;
     //int numRandomBetas = 1;
 
     // INPUT on below lines (need to create a prior beta value)
@@ -227,6 +227,8 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
 
     // Loop through the phi matrix to calculate the beta vectors
     cout << "Pose: 0" << "/" << numInputPoses;
+    double maxConvergedXCOMValue;
+    //double maxConvergedXCOMValue = 99;
     int pose = 0;
     while (pose < numInputPoses) {
         // Max xCOM so biggest learning is always done first
@@ -238,7 +240,7 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
         // greatest learning
         int i = 0;
         while (i < phiMatrix.rows()) {
-            cout << "\rPose: " << pose + 1 << "/" << numInputPoses << " Finding Max: " << i << "/" << phiMatrix.rows() << " \t ";
+            cout << "\rPose: " << pose + 1 << "/" << numInputPoses << "; Curr Max XCOM: " << maxConvergedXCOMValue << "; Finding Max: " << i << "/" << phiMatrix.rows() << " \t  \t \t";
             phiVec = phiMatrix.row(i);
             xCOMValue = ((phiVec * currBeta.transpose()).cwiseAbs()).sum();
             if (xCOMValue >= maxXCOMValue) {
@@ -282,7 +284,8 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
         betaVectors.block((pose + 1) * numBetas, 0, numBetas, numBetaParams) = currBeta;
 
         // Determine the min value of all the xCOMs of each currBeta
-        if (!xtolReached(threshold, xCOMAllVectors, pose, convergedPoses)) {
+        maxConvergedXCOMValue = maxXCOM(xCOMAllVectors, pose, convergedPoses);
+        if (maxConvergedXCOMValue >= threshold) {
             // Remove the maxPose from phiMatrix and inputPoses, since it is
             // already used (don't want to double count a single pose)
             Eigen::MatrixXd phiMatrixTmp(phiMatrix.rows() - 1, phiMatrix.cols());
@@ -305,7 +308,7 @@ trainBetaRetVal trainBeta(string inputName, Eigen::MatrixXd inputPoses, Eigen::M
             break;
         }
     }
-    cout << "\rPose: " << pose << "/" << numInputPoses << " Finding Max: " << phiMatrix.rows() << "/" << phiMatrix.rows() << " \t ";
+    cout << "\rPose: " << pose << "/" << numInputPoses << "; Curr Max XCOM: " << maxConvergedXCOMValue << "; Finding Max: " << phiMatrix.rows() << "/" << phiMatrix.rows() << " \t \t \t";
 
     Eigen::MatrixXd filteredPosesFin = filteredPoses.topRows(pose);
 
@@ -410,23 +413,20 @@ SkeletonPtr setParameters(SkeletonPtr robot, Eigen::MatrixXd betaParams, int bod
 }
 
 // // Check for convergence
-bool xtolReached(double threshold, Eigen::MatrixXd xCOMAllVectors, int pose, int convergedPoses) {
+double maxXCOM(Eigen::MatrixXd xCOMAllVectors, int pose, int convergedPoses) {
     if (pose + 1 < convergedPoses) {
-        return false;
+        return (double) INT_MAX;
     }
-
+    double absMaxxCOM = 0;
     for (int i = 0; i < convergedPoses; i++) {
         Eigen::MatrixXd xCOMVector = xCOMAllVectors.row(pose + 1 - convergedPoses + i);
         double minxCOM = xCOMVector.minCoeff();
         double maxxCOM = xCOMVector.maxCoeff();
-        double absMaxxCOM = maxxCOM;
+        absMaxxCOM = maxxCOM;
         if (abs(minxCOM) > maxxCOM) {
             absMaxxCOM = abs(minxCOM);
         }
-        if (absMaxxCOM >= threshold) {
-            return false;
-        }
     }
 
-    return true;
+    return absMaxxCOM;
 }

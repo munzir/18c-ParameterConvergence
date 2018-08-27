@@ -146,6 +146,7 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd betaVectors, Eigen::MatrixXd phiMatrix,
     //currRobot = setParameters(currRobot, beta, bodyParams);
 
     // Loop through the phi matrix to test the beta
+    cout << "betaVectorsRows" << betaVectors.rows() << endl;
     for (int betaVectorNum = 0; betaVectorNum < betaVectors.rows(); betaVectorNum += numBetas) {
         beta = betaVectors.block(betaVectorNum, 0, numBetas, betaVectors.cols());
         for (int pose = 0; pose < numInputPoses; pose++) {
@@ -158,8 +159,10 @@ Eigen::MatrixXd testBeta(Eigen::MatrixXd betaVectors, Eigen::MatrixXd phiMatrix,
             xCOMReal(betaVectorNum * numInputPoses + pose, 0) = currRobot->getCOM()(0);
 
         }
+        cout << "betaVectorNum" << betaVectorNum << endl;
     }
 
+    //TODO: Make another matrix to act as a row for each one
     Eigen::MatrixXd allXCOM(xCOMReal.rows(), xCOMPred.cols() + 1);
     allXCOM << xCOMReal, xCOMPred;
 
