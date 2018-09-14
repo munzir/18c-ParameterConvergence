@@ -11,6 +11,9 @@
 !TestingCurveHardwareData.png
 !TrainingCurveHardwareData.png
 !TrainingCurveFilteredSimulatedData.png
+!TestingHardwareData.eps
+!TrainingHardwareData.eps
+!TrainingFilteredSimulatedData.eps
 
 # Data Analysis Scripts
 !/data_analysis/

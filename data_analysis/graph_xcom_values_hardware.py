@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import sys
 
+plt.rcParams['axes.grid'] = True
+plt.rc('xtick', labelsize=18)
+plt.rc('ytick', labelsize=18)
 # INPUTS
 # 47 as for now
 numTestPosesInput = sys.argv[1]
@@ -52,8 +55,9 @@ dotsize = 10
 #ax.scatter(x, xCOMAvgP2Std, label='Avg+2*std', s=dotsize)
 #ax.scatter(x, xCOMAvgM2Std, label='Avg-2*std', s=dotsize)
 
-ax.set_xlabel('Number of Poses')
-ax.set_ylabel('Error')
+ax.grid()
+ax.set_xlabel('Number of Poses',fontsize=18)
+ax.set_ylabel('Error',fontsize=18)
 #ax.legend();
 
 # Plot xCOM Diff Avg +/- std
@@ -75,15 +79,15 @@ totalAvgDiffPStd = totalAvgDiff + np.std(xCOMAvgDiffPStd)
 #
 # axDiff = figDiff.add_subplot(111)
 # dotsize = 10
-ax.plot(x, xCOMMaxDiff, label='Max')
 # axDiff.scatter(x, xCOMAvgDiffPStd, label='AvgDiff+1*std', s=dotsize)
 # axDiff.scatter(x, xCOMAvgDiffMStd, label='AvgDiff-1*std', s=dotsize)
 # axDiff.scatter(x, xCOMAvgDiff, label='AvgDiff', s=dotsize)
 #ax.plot(x, xCOMAvgDiffPStd, label='Avg+1*std')
-ax.plot(x, xCOMAvgDiff, label='Avg')
-ax.plot(x, [0.002]*len(x), label='2milli')
-ax.plot(x, [0]*len(x), label='Zero')
-ax.legend();
+ax.plot(x, xCOMAvgDiff, label='Avg', linewidth=2)
+ax.plot(x, xCOMMaxDiff, label='Max', linewidth=2)
+#ax.plot(x, [0.002]*len(x), label='2milli')
+#ax.plot(x, [0]*len(x), label='Zero')
+ax.legend(fontsize=18);
 # axDiff.scatter(x, [0]*len(x), label='Zero', s=1)
 # axDiff.plot(x, [0.002]*len(x), label='2milli')
 # axDiff.plot(x, [-0.002]*len(x), label='-2milli')

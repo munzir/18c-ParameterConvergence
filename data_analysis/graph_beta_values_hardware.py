@@ -6,6 +6,8 @@ import matplotlib.ticker as plticker
 import sys
 
 plt.rcParams['axes.grid'] = True
+plt.rc('xtick', labelsize=18)
+plt.rc('ytick', labelsize=18)
 
 # xCOM file format : xCOMMatrix {Row: Iteration, Col: xCOM for each Beta
 xCOMFilename = sys.argv[1]
@@ -53,24 +55,25 @@ figxCOM = plt.figure()
 
 axxCOM = figxCOM.add_subplot(111)
 # TODO dont need avg in hardware plot
-axxCOM.plot(x, xCOMAvgPStd, label='Avg+1*std')
-axxCOM.plot(x, xCOMAvg, label='Error')
+axxCOM.plot(x, xCOMAvg, label='Error', linewidth=2)
+#axxCOM.plot(x, xCOMAvgPStd, label='Avg+1*std', linewidth=2)
+axxCOM.set_ylim(0, 0.05)
 #axxCOM.plot(x, xCOMAvg, label='Avg')
 #axxCOM.plot(x, xCOMAvgMStd, label='Avg-1*std')
 #axxCOM.plot(x, xCOMAvg, label='X_CoM')
 
-axxCOM.plot(x, [0.002]*len(x), label='2milli')
+#axxCOM.plot(x, [0.002]*len(x), label='2milli', linewidth=2)
 #axxCOM.plot(x, [-0.002]*len(x), label='-2milli')
 
 #TODO: Need to change from zero to real values
 #axxCOM.scatter(x, [0]*len(x), label='Real', s=1)
-axxCOM.plot(x, [0]*len(x), label='Zero')
+#axxCOM.plot(x, [0]*len(x), label='Zero', linewidth=2)
 
 
-axxCOM.set_xlabel('Number of Poses')
+axxCOM.set_xlabel('Number of Poses', fontsize = 18)
 #axxCOM.set_ylabel('X_CoM')
-axxCOM.set_ylabel('Error')
-axxCOM.legend();
+axxCOM.set_ylabel('Error', fontsize = 18)
+#axxCOM.legend(fontsize = 18);
 
 # # Plot xCOMDiff Avg +/- std and Zero
 # xCOMDiff = xCOM - xCOMReal
