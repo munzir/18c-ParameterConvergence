@@ -7,7 +7,8 @@ import sys
 
 # INPUTS
 # 47 as for now
-numTestPoses = sys.argv[1]
+numTestPosesInput = sys.argv[1]
+numTestPoses = int(numTestPosesInput)
 # xCOM file format : xCOMMatrix {Row: Iteration, Col: xCOM for each Beta
 xCOMFilename = sys.argv[2]
 
@@ -22,7 +23,11 @@ xCOMReal = xCOMReal[:, np.newaxis]
 xCOM = np.absolute(xCOM)
 xCOM = np.delete(xCOM, 0, axis=1)
 
-x = list(range(1, len(xCOM) + 1))
+# TODO: I think this only works for one beta (i.e. one row) would need to do a
+# 3d reshape for multiple betas
+xCOM = np.reshape(xCOM, (-1, numTestPoses))
+
+x = list(range(1, xCOM.shape[0] + 1))
 
 xCOMAvg = [np.mean(item, axis=0) for item in xCOM];
 std = [np.std(item, axis=0) for item in xCOM];
@@ -38,7 +43,7 @@ fig.suptitle("X_CoM Values for Many Betas during Testing")
 
 ax = fig.add_subplot(111)
 dotsize = 10
-ax.scatter(x, xCOM, label='Xcom Pred', s=dotsize)
+#ax.scatter(x, xCOM, label='Xcom Pred', s=dotsize)
 #ax.plot(x, xCOMAvg, label='Avg')
 #ax.plot(x, xCOMAvgPStd, label='Avg+1*std')
 #ax.plot(x, xCOMAvgMStd, label='Avg-1*std')
@@ -58,6 +63,7 @@ ax.set_ylabel('X_CoM')
 #xCOMDiff = xCOM - xCOMReal
 xCOMDiff = xCOM
 xCOMDiff = np.absolute(xCOMDiff)
+xCOMMaxDiff = [np.amax(item, axis=0) for item in xCOMDiff];
 xCOMAvgDiff = [np.mean(item, axis=0) for item in xCOMDiff];
 stdDiff = [np.std(item, axis=0) for item in xCOMDiff];
 xCOMAvgDiffPStd = np.add(xCOMAvgDiff, stdDiff);
@@ -71,11 +77,12 @@ totalAvgDiffPStd = totalAvgDiff + np.std(xCOMAvgDiffPStd)
 #
 # axDiff = figDiff.add_subplot(111)
 # dotsize = 10
+ax.plot(x, xCOMMaxDiff, label='Max Error')
 # axDiff.scatter(x, xCOMAvgDiffPStd, label='AvgDiff+1*std', s=dotsize)
 # axDiff.scatter(x, xCOMAvgDiffMStd, label='AvgDiff-1*std', s=dotsize)
 # axDiff.scatter(x, xCOMAvgDiff, label='AvgDiff', s=dotsize)
-ax.plot(x, [totalAvgDiffPStd]*len(x), label='Avg+1*std')
-ax.plot(x, [totalAvgDiff]*len(x), label='Avg')
+#ax.plot(x, xCOMAvgDiffPStd, label='Avg+1*std')
+ax.plot(x, xCOMAvgDiff, label='Avg')
 ax.legend();
 # axDiff.scatter(x, [0]*len(x), label='Zero', s=1)
 # axDiff.plot(x, [0.002]*len(x), label='2milli')
