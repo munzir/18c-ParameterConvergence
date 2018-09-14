@@ -54,13 +54,16 @@ int main() {
     //srand(0);
 
     // INPUT on below line (number of random initial betas)
-    int numRandomBetas = 500;
+    //int numRandomBetas = 500;
+    int numRandomBetas = 1;
 
     // INPUT on below line (input poses filename)
     //string inputPosesFilename = "../filteredPoses500initialBetarandom22106fullbalance0.001000tolsafe2.000000*10e-3filter.txt";
-    string inputPosesFilename = "../filPoses.txt";
+    //string inputPosesFilename = "../filPoses.txt";
     //string inputPosesFilename = "../hardwaretrain-balanced-posesmunzirdart.txt";
     //string inputPosesFilename = "../hardware-balanced-posesmunzir.txt";
+    //string inputPosesFilename = "../random20000anglebalance0.001000tolsafe.txt";
+    string inputPosesFilename = "../hardware236.txt";
 
     // INPUT on below line (perturbation value for finding phi)
     double perturbedValue = std::pow(10, -8);
@@ -72,12 +75,12 @@ int main() {
     string fullRobotPath = "/home/apatel435/Desktop/WholeBodyControlAttempt1/09-URDF/Krang/Krang.urdf";
 
     // INPUT on below lines (need to create a prior beta value)
-    double minXCOMError = 0.02;
-    double maxDeviation = 0.50;
-    double maxOffset = 0.50;
-    //double minXCOMError = 0.00;
-    //double maxDeviation = 0.00;
-    //double maxOffset = 0.00;
+    //double minXCOMError = 0.02;
+    //double maxDeviation = 0.50;
+    //double maxOffset = 0.50;
+    double minXCOMError = 0.00;
+    double maxDeviation = 0.00;
+    double maxOffset = 0.00;
 
     //Best so far with u = 0 n = 300 would need to do comparisons of
     // INPUT on below line (learning rate)

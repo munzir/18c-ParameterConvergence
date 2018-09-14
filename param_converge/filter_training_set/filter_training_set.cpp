@@ -77,8 +77,8 @@ int main() {
     string priorBetasFilename = "";
 
     // INPUT on below line (number of random initial betas)
-    int numRandomBetas = 500;
-    //int numRandomBetas = 1;
+    //int numRandomBetas = 500;
+    int numRandomBetas = 1;
 
     // INPUT on below lines (need to create a prior beta value)
     double minXCOMError = 0.02;
@@ -102,7 +102,8 @@ int main() {
 
     // INPUT on below line (threshold to filter out)
     // threshold = mag * 10^exp
-    double mag = 2;
+    //double mag = 2;
+    double mag = 0;
     int exp = -3;
     double threshold = mag * pow(10, exp);
 
