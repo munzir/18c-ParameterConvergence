@@ -7,6 +7,11 @@
 # Readme
 !README.md
 
+# Temp Paper Plots
+!TestingCurveHardwareData.png
+!TrainingCurveHardwareData.png
+!TrainingCurveFilteredSimulatedData.png
+
 # Data Analysis Scripts
 !/data_analysis/
 /data_analysis/*

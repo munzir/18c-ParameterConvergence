@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import sys
 
+plt.rcParams['axes.grid'] = True
+
 # xCOM file format : xCOMMatrix {Row: Iteration, Col: xCOM for each Beta
 xCOMFilename = sys.argv[1]
 totalMassFilename = sys.argv[2]
@@ -47,20 +49,27 @@ xCOMAvgPStd = np.add(xCOMAvg, std);
 xCOMAvgMStd = np.subtract(xCOMAvg, std);
 
 figxCOM = plt.figure()
-figxCOM.suptitle("X_CoM for Many Betas during Learning")
+#figxCOM.suptitle("X_CoM for Many Betas during Learning")
 
 axxCOM = figxCOM.add_subplot(111)
+# TODO dont need avg in hardware plot
 axxCOM.plot(x, xCOMAvgPStd, label='Avg+1*std')
-axxCOM.plot(x, xCOMAvgMStd, label='Avg-1*std')
-axxCOM.plot(x, xCOMAvg, label='Avg')
-#TODO: Need to change from zero to real values
-axxCOM.scatter(x, [0]*len(x), label='Real', s=1)
+axxCOM.plot(x, xCOMAvg, label='Error')
+#axxCOM.plot(x, xCOMAvg, label='Avg')
+#axxCOM.plot(x, xCOMAvgMStd, label='Avg-1*std')
+#axxCOM.plot(x, xCOMAvg, label='X_CoM')
 
 axxCOM.plot(x, [0.002]*len(x), label='2milli')
 #axxCOM.plot(x, [-0.002]*len(x), label='-2milli')
 
+#TODO: Need to change from zero to real values
+#axxCOM.scatter(x, [0]*len(x), label='Real', s=1)
+axxCOM.plot(x, [0]*len(x), label='Zero')
+
+
 axxCOM.set_xlabel('Number of Poses')
-axxCOM.set_ylabel('X_CoM')
+#axxCOM.set_ylabel('X_CoM')
+axxCOM.set_ylabel('Error')
 axxCOM.legend();
 
 # # Plot xCOMDiff Avg +/- std and Zero
@@ -79,8 +88,8 @@ axxCOM.legend();
 # axxCOMDiff.plot(x, xCOMAvgDiffPStd, label='Avg+1*std')
 # axxCOMDiff.plot(x, xCOMAvgDiffMStd, label='Avg-1*std')
 # axxCOMDiff.plot(x, xCOMAvgDiff, label='Avg')
-# axxCOMDiff.plot(x, [0]*len(x), label='Zero')
 # axxCOMDiff.plot(x, [0.002]*len(x), label='2milli')
+# axxCOMDiff.plot(x, [0]*len(x), label='Zero')
 # axxCOMDiff.plot(x, [-0.002]*len(x), label='-2milli')
 #
 # axxCOMDiff.set_xlabel('Number of Poses')
@@ -94,14 +103,16 @@ tmAvgPStd = np.add(tmAvg, std);
 tmAvgMStd = np.subtract(tmAvg, std);
 
 figtm = plt.figure()
-figtm.suptitle("Total Mass for Many Betas during Learning")
+#figtm.suptitle("Total Mass for Many Betas during Learning")
 
 axtm = figtm.add_subplot(111)
-axtm.plot(x, tmAvgPStd, label='Avg+1*std')
-axtm.plot(x, tmAvgMStd, label='Avg-1*std')
-axtm.plot(x, tmAvg, label='Avg')
+#TODO no need for avg and std for hardware plots
+#axtm.plot(x, tmAvgPStd, label='Avg+1*std')
+#axtm.plot(x, tmAvgMStd, label='Avg-1*std')
+#axtm.plot(x, tmAvg, label='Avg')
+axtm.plot(x, tmAvg, label='Mass')
 # TODO hardcoded
-axtm.plot(x, [162.158]*len(x), label='Actual')
+#axtm.plot(x, [162.158]*len(x), label='Actual')
 
 axtm.set_xlabel('Number of Poses')
 axtm.set_ylabel('Total Mass')
@@ -132,10 +143,11 @@ for i in bodiesToGraph:
         betaBodyAvgPStd = betaAvgPStd[:, i * 4 + j]
         betaBodyAvgMStd = betaAvgMStd[:, i * 4 + j]
 
-        ax.plot(x, betaBodyAvgPStd, label='Avg+1*std')
-        ax.plot(x, betaBodyAvgMStd, label='Avg-1*std')
+        # TODO dont need avg and real for hardware
+        #ax.plot(x, betaBodyAvgPStd, label='Avg+1*std')
+        #ax.plot(x, betaBodyAvgMStd, label='Avg-1*std')
         ax.plot(x, betaBodyAvg, label='Avg')
-        ax.plot(x, [betaIdeal[0][i * 4 + j]]*len(x), label='Real')
+        #ax.plot(x, [betaIdeal[0][i * 4 + j]]*len(x), label='Real')
 
         ax.set_xlabel('Number of Poses')
         if (j == 0):

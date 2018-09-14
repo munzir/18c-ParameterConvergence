@@ -27,7 +27,7 @@ xCOM = np.delete(xCOM, 0, axis=1)
 # 3d reshape for multiple betas
 xCOM = np.reshape(xCOM, (-1, numTestPoses))
 
-x = list(range(1, xCOM.shape[0] + 1))
+x = list(range(0, xCOM.shape[0]))
 
 xCOMAvg = [np.mean(item, axis=0) for item in xCOM];
 std = [np.std(item, axis=0) for item in xCOM];
@@ -39,7 +39,7 @@ xCOMAvgM2Std = np.subtract(xCOMAvgMStd, std);
 
 # Plot xCOM Avg +/- std and Real
 fig = plt.figure()
-fig.suptitle("X_CoM Values for Many Betas during Testing")
+#fig.suptitle("X_CoM Values for Many Betas during Testing")
 
 ax = fig.add_subplot(111)
 dotsize = 10
@@ -48,14 +48,12 @@ dotsize = 10
 #ax.plot(x, xCOMAvgPStd, label='Avg+1*std')
 #ax.plot(x, xCOMAvgMStd, label='Avg-1*std')
 # Hardware real is zero
-ax.plot(x, [0]*len(x), label='Zero')
-ax.plot(x, [0.002]*len(x), label='2milli')
 #ax.plot(x, [-0.002]*len(x), label='-2milli')
 #ax.scatter(x, xCOMAvgP2Std, label='Avg+2*std', s=dotsize)
 #ax.scatter(x, xCOMAvgM2Std, label='Avg-2*std', s=dotsize)
 
 ax.set_xlabel('Number of Poses')
-ax.set_ylabel('X_CoM')
+ax.set_ylabel('Error')
 #ax.legend();
 
 # Plot xCOM Diff Avg +/- std
@@ -77,12 +75,14 @@ totalAvgDiffPStd = totalAvgDiff + np.std(xCOMAvgDiffPStd)
 #
 # axDiff = figDiff.add_subplot(111)
 # dotsize = 10
-ax.plot(x, xCOMMaxDiff, label='Max Error')
+ax.plot(x, xCOMMaxDiff, label='Max')
 # axDiff.scatter(x, xCOMAvgDiffPStd, label='AvgDiff+1*std', s=dotsize)
 # axDiff.scatter(x, xCOMAvgDiffMStd, label='AvgDiff-1*std', s=dotsize)
 # axDiff.scatter(x, xCOMAvgDiff, label='AvgDiff', s=dotsize)
 #ax.plot(x, xCOMAvgDiffPStd, label='Avg+1*std')
 ax.plot(x, xCOMAvgDiff, label='Avg')
+ax.plot(x, [0.002]*len(x), label='2milli')
+ax.plot(x, [0]*len(x), label='Zero')
 ax.legend();
 # axDiff.scatter(x, [0]*len(x), label='Zero', s=1)
 # axDiff.plot(x, [0.002]*len(x), label='2milli')
@@ -93,4 +93,5 @@ ax.legend();
 # axDiff.set_ylabel('X_CoM Diff')
 #
 # axDiff.legend();
+plt.grid()
 plt.show()
