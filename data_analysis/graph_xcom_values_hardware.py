@@ -3,11 +3,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
+from matplotlib import rc
 import sys
 
 plt.rcParams['axes.grid'] = True
 plt.rc('xtick', labelsize=18)
 plt.rc('ytick', labelsize=18)
+rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+rc('text', usetex=True)
+
+
 # INPUTS
 # 47 as for now
 numTestPosesInput = sys.argv[1]
